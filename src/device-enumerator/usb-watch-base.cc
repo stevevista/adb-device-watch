@@ -30,28 +30,86 @@ using namespace adb_client;
 
 namespace {
 
+constexpr uint16_t QUALCOMM_VID = 0x05C6;
+constexpr uint16_t QDL_PID = 0x9008;
+constexpr int MAX_ADB_RETRY_COUNT = 60;
+constexpr auto ADB_POLL_INTERVAL = std::chrono::milliseconds(3000);
+
 const std::regex re_remote(R"((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{1,5}))");
 
-std::string createUuid(const std::string &interface_id) {
+std::string createUuid(std::string_view interface_id) {
   std::vector<unsigned char> hash(picosha2::k_digest_size);
   picosha2::hash256(interface_id.begin(), interface_id.end(), hash.begin(), hash.end());
   return picosha2::bytes_to_hex_string(hash.begin(), hash.begin() + 16);
 }
 
-bool isRemoteDevice(const std::string &serial, std::string *ip = nullptr, uint16_t *port = nullptr) {
-  std::smatch matches;
-  if (!std::regex_match(serial, matches, re_remote) || matches.size() != 3) {
+bool isRemoteDevice(const std::string &serial, std::string *ip = nullptr, uint16_t *port = nullptr) noexcept {
+  try {
+    std::smatch matches;
+    if (!std::regex_match(serial, matches, re_remote) || matches.size() != 3) {
+      return false;
+    }
+
+    if (ip) {
+      *ip = matches[1];
+    }
+
+    if (port) {
+      *port = std::stoi(matches[2].str());
+    }
+    return true;
+  } catch (const std::regex_error& e) {
+    return false;
+  }
+}
+
+constexpr bool checkTypeFilter(const DeviceNode& node, const UsbEnumerator::WatchSettings& settings) {
+  return settings.typeFilters.empty() ||
+    std::ranges::any_of(settings.typeFilters, [&node](auto filter) {
+      return (node.type & filter) == static_cast<uint32_t>(filter);
+    });
+}
+
+constexpr bool checkVidFilter(const DeviceNode& node, const UsbEnumerator::WatchSettings& settings) {
+  if (settings.includeVids.size() &&
+      std::ranges::find(settings.includeVids, node.vid) == settings.includeVids.end()) {
     return false;
   }
 
-  if (ip) {
-    *ip = matches[1];
+  if (settings.excludeVids.size() &&
+      node.vid &&
+      std::ranges::find(settings.excludeVids, node.vid) != settings.excludeVids.end()) {
+    return false;
   }
 
-  if (port) {
-    *port = std::stoi(matches[2].str());
-  }
   return true;
+}
+
+constexpr bool checkPidFilter(const DeviceNode& node, const UsbEnumerator::WatchSettings& settings) {
+  if (settings.includePids.size() &&
+      std::ranges::find(settings.includePids, node.pid) == settings.includePids.end()) {
+    return false;
+  }
+
+  if (settings.excludePids.size() &&
+      node.pid &&
+      std::ranges::find(settings.excludePids, node.pid) != settings.excludePids.end()) {
+    return false;
+  }
+
+  return true;
+}
+
+constexpr bool checkDriverFilter(const DeviceNode& node, const UsbEnumerator::WatchSettings& settings) {
+  return settings.drivers.empty() ||
+     std::ranges::find(settings.drivers, node.driver) != settings.drivers.end();
+}
+
+constexpr bool shouldIncludeDevice(const DeviceNode& node, const UsbEnumerator::WatchSettings& settings) {
+  return checkTypeFilter(node, settings) &&
+         checkVidFilter(node, settings) &&
+         checkPidFilter(node, settings) &&
+         checkDriverFilter(node, settings);
 }
 
 } // namespace
@@ -70,54 +128,13 @@ void UsbEnumerator::initialEnumerateDevices() {
   }
 }
 
-void UsbEnumerator::onInterfaceEnumerated(const std::string &interface_id, DeviceNode&& newdev) {
-  if (newdev.vid == QUALCOMM_VID) {
-    if (newdev.pid == 0x9008) {
-      newdev.type |= DeviceState::QDL;
-    }
+void UsbEnumerator::onUsbInterfaceEnumerated(const std::string &interface_id, DeviceNode&& newdev) {
+  if (newdev.vid == QUALCOMM_VID && newdev.pid == QDL_PID) {
+    newdev.type |= DeviceState::QDL;
   }
 
-  if (settings_.typeFilters.size()) {
-    bool type_match = false;
-    for (auto filter : settings_.typeFilters) {
-      if ((newdev.type & filter) == static_cast<uint32_t>(filter)) {
-        type_match = true;
-        break;
-      }
-    }
-    if (!type_match) {
-      return;
-    }
-  }
-
-  if (settings_.excludeVids.size()) {
-    if (newdev.vid && std::ranges::find(settings_.excludeVids, newdev.vid) != settings_.excludeVids.end()) {
-      return;
-    }
-  }
-
-  if (settings_.includeVids.size()) {
-    if (!newdev.vid || std::ranges::find(settings_.includeVids, newdev.vid) == settings_.includeVids.end()) {
-      return;
-    }
-  }
-
-  if (settings_.excludePids.size()) {
-    if (newdev.pid && std::ranges::find(settings_.excludePids, newdev.pid) != settings_.excludePids.end()) {
-      return;
-    }
-  }
-
-  if (settings_.drivers.size()) {
-    if (std::ranges::find(settings_.drivers, newdev.driver) == settings_.drivers.end()) {
-      return;
-    }
-  }
-
-  if (settings_.includePids.size()) {
-    if (!newdev.pid || std::ranges::find(settings_.includePids, newdev.pid) == settings_.includePids.end()) {
-      return;
-    }
+  if (!shouldIncludeDevice(newdev, settings_)) {
+    return;
   }
 
   newdev.identity = createUuid(interface_id);
@@ -132,10 +149,10 @@ void UsbEnumerator::onInterfaceEnumerated(const std::string &interface_id, Devic
     return;
   }
 
-  onDeviceInterfaceChanged(std::move(newdev));
+  onDeviceInterfaceChanged(newdev);
 }
 
-void UsbEnumerator::onInterfaceOff(const std::string &interface_id) {
+void UsbEnumerator::onUsbInterfaceOff(const std::string &interface_id) {
   auto uuid = createUuid(interface_id);
   onDeviceInterfaceChangedToOff(uuid);
 }
@@ -150,15 +167,20 @@ void UsbEnumerator::onDeviceInterfaceChangedToOff(const std::string &uuid) {
     }
 
     node = std::move(it->second);
-    node.off = true;
     devices_.erase(it);
   }
 
+  node.off = true;
+
   if ((node.type & (DeviceState::Adb | DeviceState::Usb)) == static_cast<uint32_t>(DeviceState::Adb | DeviceState::Usb)) {
     adb_task_.push_request(Trigger { .node = node });
+    if (node.device.empty() && node.model.empty()) {
+      // means not merged with adb devices, no need notify
+      return;
+    }
   }
 
-  onDeviceInterfaceChanged(std::move(node));
+  onDeviceInterfaceChanged(node);
 }
 
 namespace {
@@ -169,73 +191,81 @@ constexpr void merge_adb_info(DeviceNode &dst, DeviceInfo &&src) {
   dst.device = std::move(src.device);
 }
 
-}
+} // namespace
 
 void UsbEnumerator::createAdbTask() {
   adb_task_.set_consume_all_requests(true);
-  adb_task_.start(std::chrono::seconds(3000), [this](std::optional<Trigger> &&r) {
-    int round = 0;
-    bool check_up = false;
-    DeviceNode node;
-    if (r.has_value()) {
-      node = std::move(r->node);
-      check_up = !node.off;
-      round = r->round;
+  adb_task_.start(ADB_POLL_INTERVAL, [this](std::optional<Trigger> &&req) {
 
-      if (node.off) {
-        adb_serials_.remove_if([&](auto &d) { return d.second == node.identity; });
+    if (req.has_value()) {
+      if (req->node.off) {
+        adb_serials_.remove_if([&](auto &d) { return d.second == req->node.identity; });
+        req.reset();
       }
     }
 
     auto devs = adb_list_devices({}, true);
 
     // check removed devices
-    auto it = adb_serials_.begin();
-    while (it != adb_serials_.end()) {
-        auto itor = it;
-        it++;
-
-        if (devs.end() == std::ranges::find_if(devs, [&](auto &d) { return d.serial == itor->first; })) {
-          if (isRemoteDevice(itor->first)) {
-            onDeviceInterfaceChangedToOff(itor->second);
-          }
-
-          adb_serials_.erase(itor);
-        }
-    }
+    std::erase_if(adb_serials_, [this, &devs](const auto& pair) {
+      bool not_found = std::ranges::none_of(devs, [&](const auto& d) { 
+        return d.serial == pair.first; 
+      });
+      
+      if (not_found && isRemoteDevice(pair.first)) {
+        onDeviceInterfaceChangedToOff(pair.second);
+      }
+      
+      return not_found;
+    });
 
     // check added devices
     for (auto &dev : devs) {
-        if (adb_serials_.end() == std::ranges::find_if(adb_serials_, [&](auto &d) { return d.first == dev.serial; })) {
-          DeviceNode rmote;
-          if (isRemoteDevice(dev.serial, &rmote.ip, &rmote.port)) {
-            rmote.identity = createUuid(dev.serial);
-            rmote.serial = dev.serial;
-            rmote.type = DeviceState::Adb | DeviceState::Net;
-            merge_adb_info(rmote, std::move(dev));
-            adb_serials_.push_back(std::make_pair(dev.serial, rmote.identity));
-            onInterfaceEnumerated(dev.serial, std::move(rmote));
-          } else {
-            if (check_up) {
-              if (node.serial == dev.serial || node.serial.empty()) {
-                node.serial = std::move(dev.serial);
-                merge_adb_info(node, std::move(dev));
-                adb_serials_.push_back(std::make_pair(dev.serial, node.identity));
-                onDeviceInterfaceChanged(std::move(node));
-                check_up = false;
+      if (std::ranges::none_of(adb_serials_, [&](auto &d) { return d.first == dev.serial; })) {
+        DeviceNode rmote;
+        if (isRemoteDevice(dev.serial, &rmote.ip, &rmote.port)) {
+          rmote.identity = createUuid(dev.serial);
+          rmote.serial = dev.serial;
+          rmote.type = DeviceState::Adb | DeviceState::Net;
+          merge_adb_info(rmote, std::move(dev));
+          adb_serials_.push_back(std::make_pair(dev.serial, rmote.identity));
+
+          if (shouldIncludeDevice(rmote, settings_)) {
+            {
+              std::lock_guard<std::mutex> lock(mutex_);
+              devices_[rmote.identity] = rmote;
+            }
+
+            onDeviceInterfaceChanged(rmote);
+          }
+        } else {
+          if (req.has_value()) {
+            if (req->node.serial == dev.serial || req->node.serial.empty()) {
+              req->node.serial = dev.serial;
+              merge_adb_info(req->node, std::move(dev));
+              adb_serials_.push_back(std::make_pair(dev.serial, req->node.identity));
+              {
+                std::lock_guard<std::mutex> lock(mutex_);
+                devices_[req->node.identity] = req->node;
               }
+              onDeviceInterfaceChanged(req->node);
+              req.reset();
             }
           }
         }
       }
+    }
 
-    if (check_up && round < 60) {
-      auto identity = node.identity;
-      adb_task_.push_request_conditional(Trigger { .node = std::move(node), .round = round + 1 }, [&identity](auto &r) {
+    if (req.has_value() && req->round < MAX_ADB_RETRY_COUNT) {
+      auto identity = req->node.identity;
+      req->round++;
+      bool added = adb_task_.push_request_conditional(std::move(*req), [&identity](auto &r) {
         return r.node.identity == identity;
       });
 
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      if (added) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
     }
   });
 }

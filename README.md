@@ -1,4 +1,4 @@
-# DevMonitor - 设备监控工具
+# adb device watch - 设备监控工具
 
 监视Adb和其他USB串口类设备的变化，相当于增强版的 `adb devices` 命令。
 

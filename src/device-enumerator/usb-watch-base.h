@@ -243,11 +243,11 @@ protected:
   void deleteAdbTask();
   void initialEnumerateDevices();
 
-  void onInterfaceEnumerated(const std::string &interface_id, DeviceNode&& newdev);
-  void onInterfaceOff(const std::string &interface_id);
+  void onUsbInterfaceEnumerated(const std::string &interface_id, DeviceNode&& newdev);
+  void onUsbInterfaceOff(const std::string &interface_id);
 
   virtual void enumerateDevices() = 0;
-  virtual void onDeviceInterfaceChanged(DeviceNode &&) {}
+  virtual void onDeviceInterfaceChanged(const DeviceNode &) {}
 
 protected:
   WatchSettings settings_;
@@ -265,11 +265,6 @@ private:
   std::mutex mutex_;
   // <identity, device>
   std::unordered_map<std::string, DeviceNode> devices_;
-};
-
-enum : uint16_t {
-  JLQ_VID = 0x31ef,
-  QUALCOMM_VID = 0x05c6,
 };
 
 } // namespace device_enumerator

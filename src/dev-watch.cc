@@ -104,7 +104,7 @@ deviceNodeToJsonObject(const DeviceNode &dev) {
 class UsbWatcher : public DeviceWatcher {
   std::thread thread_;
 public:
-  void onDeviceInterfaceChanged(DeviceNode&& dev) override {
+  void onDeviceInterfaceChanged(const DeviceNode &dev) override {
     auto jdev = deviceNodeToJsonObject(dev);
     std::cout << jdev.dump(FLAGS_pretty ? 4 : -1) << std::endl;
   }

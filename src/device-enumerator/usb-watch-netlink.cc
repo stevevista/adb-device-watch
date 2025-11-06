@@ -1495,7 +1495,7 @@ bool UsbEnumeratorNetlink::poll(bool blocking) {
       },
       [this](uint8_t busnum, uint8_t devaddr) {
         uint16_t session_id = ((uint16_t)busnum << 8) | devaddr;
-        onInterfaceOff(std::to_string(session_id));
+        onUsbInterfaceOff(std::to_string(session_id));
         adb_booted_ = 0;
         unload_driver();
       });
@@ -1568,7 +1568,7 @@ void UsbEnumeratorNetlink::sysfs_usb_interface_enumerated(const UsbInterfaceAttr
   if (newnode.type & DeviceState::Adb) {
     adb_booted_ = 1;
   }
-  this->onInterfaceEnumerated(interface_id, std::move(newnode));
+  this->onUsbInterfaceEnumerated(interface_id, std::move(newnode));
   // printf("busnum %x devaddr %x vendor %x product %x [%s %s %s]\n", busnum, devaddr, vendor, product, newnode.description.c_str(), tty.c_str(), serial.c_str());
 }
 

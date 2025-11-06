@@ -763,7 +763,7 @@ bool setupDiGetInterfaceDescritption(
 } // namespace
 
 void UsbEnumeratorWindows::notifyInterfaceRemove(const GUID *guid, const std::string &devpath) {
-  onInterfaceOff(devpath);
+  onUsbInterfaceOff(devpath);
 }
 
 void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
@@ -836,7 +836,7 @@ void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
     }
   }
 
-  onInterfaceEnumerated(interfaceDevpath, std::move(newdev));
+  onUsbInterfaceEnumerated(interfaceDevpath, std::move(newdev));
 }
 
 void UsbEnumeratorWindows::enumerateUsbInterfaces(
