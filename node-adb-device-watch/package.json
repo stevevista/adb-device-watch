@@ -1,27 +1,51 @@
 {
   "name": "node-adb-device-watch",
-  "version": "1.0.0",
-  "description": "Node.js device monitoring tool",
+  "version": "1.0.1",
+  "description": "Node.js device monitoring tool for ADB and USB devices",
   "main": "index.js",
   "type": "module",
+  "bin": {
+    "adb-device-watch": "index.js"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "test": "node test.js"
+    "test": "node test.js",
+    "prepublishOnly": "npm test"
   },
   "keywords": [
+    "adb",
     "device",
     "monitor",
     "usb",
-    "adb"
+    "android",
+    "device-watcher",
+    "hardware"
   ],
-  "author": "R.J. (kencube@hotmail.com)",
+  "author": "R.J. <kencube@hotmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stevevista/adb-device-watch.git"
+  },
+  "homepage": "https://github.com/stevevista/adb-device-watch",
+  "bugs": {
+    "url": "https://github.com/stevevista/adb-device-watch/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "dependencies": {
     "chalk": "^5.3.0",
     "JSONStream": "^1.3.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
-  }
+  },
+  "files": [
+    "index.js",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ]
 }
