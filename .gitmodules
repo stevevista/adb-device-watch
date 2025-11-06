@@ -1,0 +1,12 @@
+[submodule "external/asio"]
+	path = external/asio
+	url = https://github.com/chriskohlhoff/asio.git
+[submodule "external/gflags"]
+	path = external/gflags
+	url = https://github.com/gflags/gflags.git
+[submodule "external/json"]
+	path = external/json
+	url = https://github.com/nlohmann/json.git
+[submodule "external/picosha2"]
+	path = external/picosha2
+	url = https://github.com/okdshin/PicoSHA2.git
