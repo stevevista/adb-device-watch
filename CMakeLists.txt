@@ -14,6 +14,8 @@ if (MSVC)
   target_compile_definitions(asio INTERFACE _WIN32_WINNT=0x0602)
 endif()
 
+set(NLOHMANN_JSON_TARGET_NAME "adb_nlohmann_json")
+
 add_subdirectory(external/gflags EXCLUDE_FROM_ALL)
 add_subdirectory(external/json EXCLUDE_FROM_ALL)
 add_subdirectory(external/picosha2 EXCLUDE_FROM_ALL)
@@ -28,7 +30,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
   process-lib
   gflags::gflags
   device-enumerator
-  nlohmann_json
+  adb_nlohmann_json
   adb-client)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE

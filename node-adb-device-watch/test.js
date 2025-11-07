@@ -12,7 +12,7 @@ async function runTests() {
     console.log('2. Testing start/stop functionality...');
     const proc = await startDeviceWatch(['--types=usb,|net', '--watch'], data => {
       console.log('   📱 EVENT:', data);
-    }, ['C:\\dev\\project_new\\dev_monitor\\build\\Release\\']);
+    }, []);
     
     // 等待一段时间让监控器初始化
     await new Promise(resolve => setTimeout(resolve, 2000));

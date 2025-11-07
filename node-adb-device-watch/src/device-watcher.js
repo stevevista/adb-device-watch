@@ -19,6 +19,11 @@
 // SOFTWARE.
 
 import chalk from 'chalk';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export async function startDeviceWatch(args, callback, extraSearchPaths = []) {
   const { spawn } = await import('child_process');
@@ -26,10 +31,16 @@ export async function startDeviceWatch(args, callback, extraSearchPaths = []) {
     
   const pathSeparator = process.platform === 'win32' ? ';' : ':';
     
+  const binDir = join(__dirname, '..', 'bin');
+  const platformDir = process.platform === 'win32' ? 'windows' : 'linux';
+
+  const defaultSearchPaths = [join(binDir, platformDir)];
+  const allSearchPaths = [...defaultSearchPaths, ...extraSearchPaths];
+    
   let customPath = '';
     
-  if (extraSearchPaths.length > 0) {
-    customPath = extraSearchPaths.join(pathSeparator) + pathSeparator;
+  if (allSearchPaths.length > 0) {
+    customPath = allSearchPaths.join(pathSeparator) + pathSeparator;
   }
 
   const env = {

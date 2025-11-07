@@ -35,6 +35,67 @@
 }
 ```
 
+# 编译和安装
+
+## 依赖要求
+- C++20 编译器
+- CMake 3.16 或更高版本
+- Git (用于获取子模块)
+
+## 编译步骤
+
+### 1. 克隆仓库和子模块
+```bash
+git clone <repository-url>
+cd adb-device-watch
+git submodule update --init --recursive
+```
+
+### 2. 构建项目
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build . --config Release
+```
+
+### 3. 运行测试
+```bash
+ctest --output-on-failure
+```
+
+## 安装
+
+### Windows
+构建完成后，可执行文件位于 `build\Release\adb-device-watch.exe`
+
+### Linux/macOS
+构建完成后，可执行文件位于 `build/adb-device-watch`
+
+## NPM包安装
+
+### 全局安装
+```bash
+npm install -g adb-device-watch
+```
+
+### 本地安装
+```bash
+npm install adb-device-watch
+```
+
+## .NET包安装
+
+### 全局安装
+```bash
+dotnet tool install -g adb-device-watch-sharp
+```
+
+### 项目引用
+```bash
+dotnet add package adb-device-watch-sharp
+```
+
 # 参数
 * `--pretty` - 缩进格式化输出，否则按行紧凑输出
 * `--watch` - 监视设备变化，按任意键退出，否则只列出当前设备然后退出
@@ -42,7 +103,7 @@
 * `--pids` - 过滤的 PID 列表，同 `--vids` 格式
 * `--types` - 过滤的设备类型，以 | 和 , 分隔，| 表示或，, 表示且，例如 `usb,adb|net` 表示包含 USBADBADB 设备或网络设备
 * `--drivers` - 过滤的 驱动 列表，以逗号分隔，例如 `qcserial,WinUSB` 表示包含 qcserial 和 WinUSB 驱动的设备
-* `--ip_list` - 要监视的网络adb目标，以逗号分隔，例如 `192.168.1.100:5555,192.168.1.101:5555`， ’:5555‘ 可以省略
+* `--ip_list` - 要监视的网络adb目标，以逗号分隔，例如 `192.168.1.100:5555,192.168.1.101:5555`， ':5555' 可以省略
 
 # cli
 * adb-device-watch

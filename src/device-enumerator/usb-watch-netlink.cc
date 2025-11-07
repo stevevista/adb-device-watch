@@ -60,515 +60,13 @@
 namespace device_enumerator {
 
 namespace {
-/*
 
-[QcomSerialPort.NTx86.6.1]
-
-%QcomDevice70020%  = QportInstall00, USB\VID_31EF&PID_7002&MI_00
-%QcomDevice70023%  = QportInstall00, USB\VID_31EF&PID_7002&MI_03
-%QcomDevice70024%  = QportInstall00, USB\VID_31EF&PID_7002&MI_04
-%QcomDevice71010%  = QportInstall00, USB\VID_31EF&PID_7101&MI_00
-%QcomDevice71015%  = QportInstall00, USB\VID_31EF&PID_7101&MI_05
-%QcomDevice71020%  = QportInstall00, USB\VID_31EF&PID_7102&MI_00
-%QcomDevice71025%  = QportInstall00, USB\VID_31EF&PID_7102&MI_05
-%QcomDevice71026%  = QportInstall00, USB\VID_31EF&PID_7102&MI_06
-%QcomDevice80000%  = QportInstall00, USB\VID_31EF&PID_8000&MI_00
-%QcomDevice80002%  = QportInstall00, USB\VID_31EF&PID_8000&MI_02
-%QcomDevice80010%  = QportInstall00, USB\VID_31EF&PID_8001&MI_00
-%QcomDevice80012%  = QportInstall00, USB\VID_31EF&PID_8001&MI_02
-%QcomDevice80020%  = QportInstall00, USB\VID_31EF&PID_8002&MI_00
-%QcomDevice80022%  = QportInstall00, USB\VID_31EF&PID_8002&MI_02
-%QcomDevice90080%  = QportInstall00, USB\VID_31EF&PID_9008
-%QcomDevice90000%  = QportInstall00, USB\VID_31EF&PID_9000&MI_00
-%QcomDevice90001%  = QportInstall00, USB\VID_31EF&PID_9000&MI_01
-%QcomDevice90010%  = QportInstall00, USB\VID_31EF&PID_9001&MI_00
-%QcomDevice90011%  = QportInstall00, USB\VID_31EF&PID_9001&MI_01
-%QcomDevice90020%  = QportInstall00, USB\VID_31EF&PID_9002&MI_00
-%QcomDevice90021%  = QportInstall00, USB\VID_31EF&PID_9002&MI_01
-%QcomDevice90030%  = QportInstall00, USB\VID_31EF&PID_9003&MI_00
-%QcomDevice90031%  = QportInstall00, USB\VID_31EF&PID_9003&MI_01
-%QcomDevice90032%  = QportInstall00, USB\VID_31EF&PID_9003&MI_02
-%QcomDevice32001%  = QportInstall00, USB\VID_31EF&PID_3200&MI_01
-%QcomDevice32002%  = QportInstall00, USB\VID_31EF&PID_3200&MI_02
-%QcomDevice90040%  = QportInstall00, USB\VID_31EF&PID_9004&MI_00
-%QcomDevice90050%  = QportInstall00, USB\VID_31EF&PID_9005&MI_00
-%QcomDevice90060%  = QportInstall00, USB\VID_31EF&PID_9006&MI_00
-%QcomDevice900A0%  = QportInstall00, USB\VID_31EF&PID_900A&MI_00
-%QcomDevice900A1%  = QportInstall00, USB\VID_31EF&PID_900A&MI_01
-%QcomDevice900B0%  = QportInstall00, USB\VID_31EF&PID_900B&MI_00
-%QcomDevice900C0%  = QportInstall00, USB\VID_31EF&PID_900C&MI_00
-%QcomDevice900C1%  = QportInstall00, USB\VID_31EF&PID_900C&MI_01
-%QcomDevice900D0%  = QportInstall00, USB\VID_31EF&PID_900D&MI_00
-%QcomDevice900D1%  = QportInstall00, USB\VID_31EF&PID_900D&MI_01
-%QcomDevice900E0%  = QportInstall00, USB\VID_31EF&PID_900E
-%QcomDevice900F0%  = QportInstall00, USB\VID_31EF&PID_900F&MI_00
-%QcomDevice900F1%  = QportInstall00, USB\VID_31EF&PID_900F&MI_01
-%QcomDevice90100%  = QportInstall00, USB\VID_31EF&PID_9010&MI_00
-%QcomDevice90101%  = QportInstall00, USB\VID_31EF&PID_9010&MI_01
-%QcomDevice90110%  = QportInstall00, USB\VID_31EF&PID_9011&MI_00
-%QcomDevice90111%  = QportInstall00, USB\VID_31EF&PID_9011&MI_01
-%QcomDevice90120%  = QportInstall00, USB\VID_31EF&PID_9012&MI_00
-%QcomDevice90130%  = QportInstall00, USB\VID_31EF&PID_9013&MI_00
-%QcomDevice90160%  = QportInstall00, USB\VID_31EF&PID_9016&MI_00
-%QcomDevice90162%  = QportInstall00, USB\VID_31EF&PID_9016&MI_02
-%QcomDevice90170%  = QportInstall00, USB\VID_31EF&PID_9017&MI_00
-%QcomDevice90172%  = QportInstall00, USB\VID_31EF&PID_9017&MI_02
-%QcomDevice90180%  = QportInstall00, USB\VID_31EF&PID_9018&MI_00
-%QcomDevice90183%  = QportInstall00, USB\VID_31EF&PID_9018&MI_03
-%QcomDevice90191%  = QportInstall00, USB\VID_31EF&PID_9019&MI_01
-%QcomDevice90192%  = QportInstall00, USB\VID_31EF&PID_9019&MI_02
-%QcomDevice901B1%  = QportInstall00, USB\VID_31EF&PID_901B&MI_01
-%QcomDevice901C0%  = QportInstall00, USB\VID_31EF&PID_901C&MI_00
-%QcomDevice90200%  = QportInstall00, USB\VID_31EF&PID_9020&MI_00
-%QcomDevice90203%  = QportInstall00, USB\VID_31EF&PID_9020&MI_03
-%QcomDevice90210%  = QportInstall00, USB\VID_31EF&PID_9021&MI_00
-%QcomDevice90220%  = QportInstall00, USB\VID_31EF&PID_9022&MI_00
-%QcomDevice901D0%  = QportInstall00, USB\VID_31EF&PID_901D&MI_00
-%QcomDevice901F0%  = QportInstall00, USB\VID_31EF&PID_901F&MI_00
-%QcomDevice90250%  = QportInstall00, USB\VID_31EF&PID_9025&MI_00
-%QcomDevice90253%  = QportInstall00, USB\VID_31EF&PID_9025&MI_03
-%QcomDevice90260%  = QportInstall00, USB\VID_31EF&PID_9026&MI_00
-%QcomDevice90262%  = QportInstall00, USB\VID_31EF&PID_9026&MI_02
-%QcomDevice90280%  = QportInstall00, USB\VID_31EF&PID_9028&MI_00
-%QcomDevice90281%  = QportInstall00, USB\VID_31EF&PID_9028&MI_01
-%QcomDevice90290%  = QportInstall00, USB\VID_31EF&PID_9029&MI_00
-%QcomDevice90292%  = QportInstall00, USB\VID_31EF&PID_9029&MI_02
-%QcomDevice902C2%  = QportInstall00, USB\VID_31EF&PID_902C&MI_02
-%QcomDevice902D2%  = QportInstall00, USB\VID_31EF&PID_902D&MI_02
-%QcomDevice902E2%  = QportInstall00, USB\VID_31EF&PID_902E&MI_02
-%QcomDevice902E4%  = QportInstall00, USB\VID_31EF&PID_902E&MI_04
-%QcomDevice902F2%  = QportInstall00, USB\VID_31EF&PID_902F&MI_02
-%QcomDevice90303%  = QportInstall00, USB\VID_31EF&PID_9030&MI_03
-%QcomDevice90310%  = QportInstall00, USB\VID_31EF&PID_9031&MI_00
-%QcomDevice90311%  = QportInstall00, USB\VID_31EF&PID_9031&MI_01
-%QcomDevice90314%  = QportInstall00, USB\VID_31EF&PID_9031&MI_04
-%QcomDevice90320%  = QportInstall00, USB\VID_31EF&PID_9032&MI_00
-%QcomDevice90321%  = QportInstall00, USB\VID_31EF&PID_9032&MI_01
-%QcomDevice90323%  = QportInstall00, USB\VID_31EF&PID_9032&MI_03
-%QcomDevice90330%  = QportInstall00, USB\VID_31EF&PID_9033&MI_00
-%QcomDevice90331%  = QportInstall00, USB\VID_31EF&PID_9033&MI_01
-%QcomDevice90340%  = QportInstall00, USB\VID_31EF&PID_9034&MI_00
-%QcomDevice90341%  = QportInstall00, USB\VID_31EF&PID_9034&MI_01
-%QcomDevice90350%  = QportInstall00, USB\VID_31EF&PID_9035&MI_00
-%QcomDevice90351%  = QportInstall00, USB\VID_31EF&PID_9035&MI_01
-%QcomDevice90360%  = QportInstall00, USB\VID_31EF&PID_9036&MI_00
-%QcomDevice90361%  = QportInstall00, USB\VID_31EF&PID_9036&MI_01
-%QcomDevice90370%  = QportInstall00, USB\VID_31EF&PID_9037&MI_00
-%QcomDevice90371%  = QportInstall00, USB\VID_31EF&PID_9037&MI_01
-%QcomDevice90380%  = QportInstall00, USB\VID_31EF&PID_9038&MI_00
-%QcomDevice90381%  = QportInstall00, USB\VID_31EF&PID_9038&MI_01
-%QcomDevice903A1%  = QportInstall00, USB\VID_31EF&PID_903A&MI_01
-%QcomDevice903B0%  = QportInstall00, USB\VID_31EF&PID_903B&MI_00
-%QcomDevice903B1%  = QportInstall00, USB\VID_31EF&PID_903B&MI_01
-%QcomDevice903C0%  = QportInstall00, USB\VID_31EF&PID_903C&MI_00
-%QcomDevice903C1%  = QportInstall00, USB\VID_31EF&PID_903C&MI_01
-%QcomDevice903D0%  = QportInstall00, USB\VID_31EF&PID_903D&MI_00
-%QcomDevice903E0%  = QportInstall00, USB\VID_31EF&PID_903E&MI_00
-%QcomDevice903F1%  = QportInstall00, USB\VID_31EF&PID_903F&MI_01
-%QcomDevice903F2%  = QportInstall00, USB\VID_31EF&PID_903F&MI_02
-%QcomDevice90401%  = QportInstall00, USB\VID_31EF&PID_9040&MI_01
-%QcomDevice90402%  = QportInstall00, USB\VID_31EF&PID_9040&MI_02
-%QcomDevice90412%  = QportInstall00, USB\VID_31EF&PID_9041&MI_02
-%QcomDevice90413%  = QportInstall00, USB\VID_31EF&PID_9041&MI_03
-%QcomDevice90422%  = QportInstall00, USB\VID_31EF&PID_9042&MI_02
-%QcomDevice90423%  = QportInstall00, USB\VID_31EF&PID_9042&MI_03
-%QcomDevice90430%  = QportInstall00, USB\VID_31EF&PID_9043&MI_00
-%QcomDevice90431%  = QportInstall00, USB\VID_31EF&PID_9043&MI_01
-%QcomDevice90440%  = QportInstall00, USB\VID_31EF&PID_9044&MI_00
-%QcomDevice90441%  = QportInstall00, USB\VID_31EF&PID_9044&MI_01
-%QcomDevice90450%  = QportInstall00, USB\VID_31EF&PID_9045&MI_00
-%QcomDevice90451%  = QportInstall00, USB\VID_31EF&PID_9045&MI_01
-%QcomDevice90460%  = QportInstall00, USB\VID_31EF&PID_9046&MI_00
-%QcomDevice90470%  = QportInstall00, USB\VID_31EF&PID_9047&MI_00
-%QcomDevice90480%  = QportInstall00, USB\VID_31EF&PID_9048&MI_00
-%QcomDevice90481%  = QportInstall00, USB\VID_31EF&PID_9048&MI_01
-%QcomDevice90482%  = QportInstall00, USB\VID_31EF&PID_9048&MI_02
-%QcomDevice90490%  = QportInstall00, USB\VID_31EF&PID_9049&MI_00
-%QcomDevice904A0%  = QportInstall00, USB\VID_31EF&PID_904A&MI_00
-%QcomDevice904B0%  = QportInstall00, USB\VID_31EF&PID_904B&MI_00
-%QcomDevice904C0%  = QportInstall00, USB\VID_31EF&PID_904C&MI_00
-%QcomDevice904C1%  = QportInstall00, USB\VID_31EF&PID_904C&MI_01
-%QcomDevice904C2%  = QportInstall00, USB\VID_31EF&PID_904C&MI_02
-%QcomDevice904F0%  = QportInstall00, USB\VID_31EF&PID_904F&MI_00
-%QcomDevice904F1%  = QportInstall00, USB\VID_31EF&PID_904F&MI_01
-%QcomDevice90500%  = QportInstall00, USB\VID_31EF&PID_9050&MI_00
-%QcomDevice90501%  = QportInstall00, USB\VID_31EF&PID_9050&MI_01
-%QcomDevice90510%  = QportInstall00, USB\VID_31EF&PID_9051&MI_00
-%QcomDevice90511%  = QportInstall00, USB\VID_31EF&PID_9051&MI_01
-%QcomDevice90512%  = QportInstall00, USB\VID_31EF&PID_9051&MI_02
-%QcomDevice90520%  = QportInstall00, USB\VID_31EF&PID_9052&MI_00
-%QcomDevice90521%  = QportInstall00, USB\VID_31EF&PID_9052&MI_01
-%QcomDevice90522%  = QportInstall00, USB\VID_31EF&PID_9052&MI_02
-%QcomDevice90530%  = QportInstall00, USB\VID_31EF&PID_9053&MI_00
-%QcomDevice90531%  = QportInstall00, USB\VID_31EF&PID_9053&MI_01
-%QcomDevice90534%  = QportInstall00, USB\VID_31EF&PID_9053&MI_04
-%QcomDevice90540%  = QportInstall00, USB\VID_31EF&PID_9054&MI_00
-%QcomDevice90541%  = QportInstall00, USB\VID_31EF&PID_9054&MI_01
-%QcomDevice90543%  = QportInstall00, USB\VID_31EF&PID_9054&MI_03
-%QcomDevice90550%  = QportInstall00, USB\VID_31EF&PID_9055&MI_00
-%QcomDevice90551%  = QportInstall00, USB\VID_31EF&PID_9055&MI_01
-%QcomDevice90560%  = QportInstall00, USB\VID_31EF&PID_9056&MI_00
-%QcomDevice90592%  = QportInstall00, USB\VID_31EF&PID_9059&MI_02
-%QcomDevice905A0%  = QportInstall00, USB\VID_31EF&PID_905A&MI_00
-%QcomDevice905D0%  = QportInstall00, USB\VID_31EF&PID_905D&MI_00
-%QcomDevice905E0%  = QportInstall00, USB\VID_31EF&PID_905E&MI_00
-%QcomDevice905F0%  = QportInstall00, USB\VID_31EF&PID_905F&MI_00
-%QcomDevice905F1%  = QportInstall00, USB\VID_31EF&PID_905F&MI_01
-%QcomDevice90600%  = QportInstall00, USB\VID_31EF&PID_9060&MI_00
-%QcomDevice90610%  = QportInstall00, USB\VID_31EF&PID_9061&MI_00
-%QcomDevice90611%  = QportInstall00, USB\VID_31EF&PID_9061&MI_01
-%QcomDevice90620%  = QportInstall00, USB\VID_31EF&PID_9062&MI_00
-%QcomDevice90640%  = QportInstall00, USB\VID_31EF&PID_9064&MI_00
-
-*/
-
-// from windows driver inf
-constexpr struct {
-  uint16_t pid;
-  int ifnum;
-} diag_interfaces[] = {
-  {0x3197, 1},
-  {0x6000, 1},
-  {0x6000, 2},
-  {0x7000, 1},
-  {0x7001, 1},
-  {0x7001, 3},
-
-
-  {0x9065, 0},
-  {0x9065, 1},
-  {0x9065, 2},
-  {0x9066, 0},
-  {0x9066, 1},
-  {0x9066, 2},
-  {0x9068, 0},
-  {0x9069, 0},
-  {0x9069, 1},
-  {0x9069, 2},
-  {0x9070, 0},
-  {0x9070, 1},
-  {0x9071, 0},
-  {0x9071, 1},
-  {0x9072, 0},
-  {0x9072, 1},
-  {0x9072, 2},
-  {0x9073, 0},
-  {0x9074, 0},
-  {0x9074, 1},
-  {0x9075, 0},
-  {0x9075, 1},
-  {0x9075, 2},
-  {0x9076, 0},
-  {0x9076, 1},
-  {0x9077, 0},
-  {0x9077, 1},
-  {0x9078, 0},
-  {0x9078, 1},
-  {0x9079, 0},
-  {0x9079, 1},
-  {0x9079, 2},
-  {0x9080, 0},
-  {0x9080, 1},
-  {0x9080, 2},
-  {0x9081, 2},
-  {0x9082, 2},
-  {0x9083, 0},
-  {0x9084, 0},
-  {0x9085, 0},
-  {0x9086, 2},
-  {0x9086, 3},
-  {0x9086, 4},
-  {0x9087, 2},
-  {0x9087, 3},
-  {0x9087, 4},
-  {0x9088, 1},
-  {0x9088, 2},
-  {0x9088, 3},
-  {0x9089, 1},
-  {0x9089, 2},
-  {0x9089, 3},
-  {0x908A, 0},
-  {0x908A, 1},
-  {0x908A, 2},
-  {0x908B, 0},
-  {0x908B, 1},
-  {0x908E, 0},
-  {0x908E, 1},
-  {0x908E, 2},
-  {0x908E, 3},
-  {0x908F, 0},
-  {0x908F, 1},
-  {0x9090, 0},
-  {0x9090, 1},
-  {0x9091, 0},
-  {0x9092, 0},
-  {0x9093, 3},
-  {0x9094, 0},
-  {0x9094, 1},
-  {0x9095, 0},
-  {0x9095, 1},
-  {0x9098, 0},
-  {0x9098, 1},
-  {0x9099, 0},
-  {0x9099, 1},
-  {0x909A, 0},
-  {0x909A, 1},
-  {0x909B, 0},
-  {0x909B, 1},
-  {0x909C, 0},
-  {0x909C, 1},
-  {0x909C, 2},
-  {0x909D, 0},
-  {0x909D, 1},
-  {0x909D, 2},
-  {0x909E, 0},
-  {0x909E, 1},
-  {0x909E, 2},
-  {0x909E, 3},
-  {0x909F, 0},
-  {0x909F, 1},
-  {0x909F, 2},
-  {0x90A0, 0},
-  {0x90A0, 1},
-  {0x90A0, 2},
-  {0x90A1, 0},
-  {0x90A2, 0},
-  {0x90A2, 1},
-  {0x90A3, 0},
-  {0x90A3, 1},
-  {0x90A5, 0},
-  {0x90A5, 1},
-  {0x90A6, 0},
-  {0x90A6, 1},
-  {0x90A7, 0},
-  {0x90A7, 3},
-  {0x90A8, 0},
-  {0x90A8, 1},
-  {0x90A9, 0},
-  {0x90A9, 3},
-  {0x90AA, 0},
-  {0x90AB, 0},
-  {0x90AB, 1},
-  {0x90AC, 0},
-  {0x90AC, 1},
-  {0x90AD, 0},
-  {0x90AD, 3},
-  {0x90AE, 0},
-  {0x90AE, 1},
-  {0x90AF, 0},
-  {0x90AF, 1},
-  {0x90B0, 0},
-  {0x90B0, 2},
-  {0x90B2, 0},
-  {0x90B5, 3},
-  {0x90B6, 3},
-  {0x90B7, 0},
-  {0x90B8, 0},
-  {0x90B9, 0},
-  {0x90BF, 2},
-  {0x90C0, 2},
-  {0x90C1, 1},
-  {0x90C2, 0},
-  {0x90C2, 1},
-  {0x90C3, 0},
-  {0x90C3, 1},
-  {0x90C4, 0},
-  {0x90C5, 0},
-  {0x90C5, 2},
-  {0x90C5, 3},
-  {0x90C6, 0},
-  {0x90C6, 2},
-  {0x90C6, 3},
-  {0x90C7, 0},
-  {0x90C7, 2},
-  {0x90C7, 3},
-  {0x90C8, 0},
-  {0x90C8, 1},
-  {0x90C9, 0},
-  {0x90C9, 1},
-  {0x90CA, 0},
-  {0x90CB, 0},
-  {0x90CC, 0},
-  {0x90CD, 0},
-  {0x90D0, 1},
-  {0x90D1, 1},
-  {0x90D2, 0},
-  {0x90D3, 0},
-  {0x90D4, 0},
-  {0x90D5, 0},
-  {0x90D6, 0},
-  {0x90D7, 0},
-  {0x90D7, 1},
-  {0x90D8, 0},
-  {0x90D8, 1},
-  {0x90D9, 0},
-  {0x90D9, 1},
-  {0x90DA, 0},
-  {0x90DB, 0},
-  {0x90DC, 0},
-  {0x90DD, 0},
-  {0x90DD, 1},
-  {0x90DE, 0},
-  {0x90DE, 1},
-  {0x90DF, 0},
-  {0x90E0, 0},
-  {0x90E1, 0},
-  {0x90E1, 1},
-  {0x90E1, 2},
-  {0x90E2, 3},
-  {0x90E2, 4},
-  {0x90E2, 5},
-  {0x90E2, 6},
-  {0x90E2, 10},
-  {0x90E2, 12},
-  {0x90E3, 0},
-  {0x90E3, 1},
-  {0x90E3, 2},
-  {0x90E3, 3},
-  {0x90E4, 0},
-  {0x90E4, 1},
-  {0x90E5, 0},
-  {0x90E5, 1},
-  {0x90E6, 2},
-  {0x90E6, 3},
-  {0x90E7, 2},
-  {0x90E7, 3},
-  {0x90E8, 2},
-  {0x90E9, 2},
-  {0x90EA, 4},
-  {0x90EA, 5},
-  {0x90EC, 0},
-  {0x90ED, 3},
-  {0x90EE, 3},
-  {0x90EF, 4},
-  {0x90F0, 4},
-  {0x90F0, 6},
-  {0x90F2, 0},
-  {0x90F3, 0},
-  {0x90F6, 0},
-  {0x90F6, 1},
-  {0x90F6, 2},
-  {0x90F7, 0},
-  {0x90F7, 1},
-  {0x90F7, 2},
-  {0x90F8, 2},
-  {0x90F8, 3},
-  {0x90F8, 4},
-  {0x90F9, 2},
-  {0x90F9, 3},
-  {0x90F9, 4},
-  {0x90FA, 0},
-  {0x90FB, 0},
-  {0x90FB, 1},
-  {0x90FB, 2},
-  {0x90FB, 3},
-  {0x90FC, 0},
-  {0x90FD, 0},
-  {0x90FE, 0},
-  {0x90FE, 1},
-  {0x90FE, 2},
-  {0x90FF, 0},
-  {0x90FF, 1},
-  {0x9102, 0},
-  {0x9103, 0},
-  {0x9104, 0},
-  {0x9105, 0},
-  {0x9106, 0},
-  {0x9107, 0},
-  {0x9108, 0},
-  {0x9109, 0},
-  {0x910A, 0},
-  {0x910B, 0},
-  {0x910C, 0},
-  {0x910D, 0},
-  {0x910E, 0},
-  {0x910E, 2},
-  {0x910F, 0},
-  {0x910F, 2},
-  {0x9110, 0},
-  {0x9110, 1},
-  {0x9111, 0},
-  {0x9111, 1},
-  {0x9112, 0},
-  {0x9112, 1},
-  {0x9112, 3},
-  {0x9113, 0},
-  {0x9114, 0},
-  {0x9115, 0},
-  {0x9100, 0},
-  {0x9100, 1},
-  {0x9101, 0},
-  {0x9101, 1},
-  {0x9101, 2},
-  {0x9101, 4},
-  {0x9101, 5},
-  {0x9402, 0},
-  {0x9402, 1},
-  {0x9404, 0},
-  {0x9404, 1},
-  {0x3199, 1},
-  {0x3199, 2},
-  {0x3199, 3},
-  {0x319A, 1},
-  {0x319A, 2},
-  {0x319A, 3},
-  {0x319B, 0},
-  {0x319B, 2},
-  {0x319B, 3},
-  {0xF00D, 0},
-  {0x920C, 0},
-  {0x920D, 1},
-  {0x920D, 3},
-  {0x9311, 0},
-  {0x9505, 0},
-  {0x9680, 0},
-  {0x9008, 0},
-  {0,      0},
-};
-
-constexpr struct {
-  uint16_t vid;
-  uint16_t pid;
-  int type; // 0 bootrom 1 tl other: unknown
-} edl_interfaces[] = {
-  {JLQ_VID,  0x5100, 0},
-  {JLQ_VID,  0x5520, 0},
-  {JLQ_VID,  0x5101, 1},
-  {JLQ_VID,  0x5521, 1},
-  {JLQ_VID,  0x3001, -1},
-  {0,  0, 0},
-};
-
-bool is_edl_port(const uint16_t vid, const uint16_t pid, DeviceState &state) {
-  for (int i = 0; edl_interfaces[i].vid; ++i) {
-    if (edl_interfaces[i].vid == vid && edl_interfaces[i].pid == pid) {
-      if (edl_interfaces[i].type == 0) {
-        state = DeviceState::EDL;
-      } else if (edl_interfaces[i].type == 0) {
-        state = DeviceState::TL;
-      } else {
-        state = DeviceState::USB;
-      }
+constexpr bool isUsb2SerialDevice(const std::vector<std::pair<uint16_t, uint16_t>> &usb2serialVidPid, uint16_t vid, uint16_t pid) {
+  for (auto &pair : usb2serialVidPid) {
+    if (pair.first == vid && (pair.second == pid || pair.second == 0)) {
       return true;
     }
   }
-  return false;
-}
-
-bool is_diag_port(const uint16_t vid, const uint16_t pid, int ifnum) {
-  DeviceState st;
-  if (is_edl_port(vid, pid, st)) {
-    return false;
-  }
-
-  if (vid == JLQ_VID || vid == QUALCOMM_VID) {
-    for (int i = 0; diag_interfaces[i].pid; ++i) {
-      if (diag_interfaces[i].pid == pid && diag_interfaces[i].ifnum == ifnum) {
-        return true;
-      }
-    }
-  }
-
   return false;
 }
 
@@ -584,35 +82,17 @@ struct UsbEnumeratorNetlink::UsbInterfaceAttr {
   std::string tty;
   std::string serial;
   std::string productDesc;
-  bool is_adb{false};
-  bool is_fastboot{false};
-  bool is_hdc{false};
   int ifnum{-1};
+  bool hasUsbClass{false};
+  uint8_t usbClass{0};
+  uint8_t usbSubClass{0};
+  uint8_t usbProto{0};
 };
 
 namespace {
 
-#define ADB_CLASS 0xff
-#define ADB_SUBCLASS 0x42
-#define ADB_PROTOCOL 0x1
-#define FASTBOOT_PROTOCOL 0x3
-#define HDC_SUBCLASS 0x50
-#define HDC_PROTOCOL 0x1
-
 using UsbInterfaceAttrs = UsbEnumeratorNetlink::UsbInterfaceAttr;
 using UsbSerialContext = UsbEnumeratorNetlink::UsbSerialContext;
-
-int is_adb_interface(int usb_class, int usb_subclass, int usb_protocol) {
-  return (usb_class == ADB_CLASS && usb_subclass == ADB_SUBCLASS && usb_protocol == ADB_PROTOCOL);
-}
-
-int is_fastboot_interface(int usb_class, int usb_subclass, int usb_protocol) {
-  return (usb_class == ADB_CLASS && usb_subclass == ADB_SUBCLASS && usb_protocol == FASTBOOT_PROTOCOL);
-}
-
-int is_hdc_interface(int usb_class, int usb_subclass, int usb_protocol) {
-  return (usb_class == 0xff && usb_subclass == HDC_SUBCLASS && usb_protocol == HDC_PROTOCOL);
-}
 
 #define SYSFS_DEVICE_PATH "/sys/bus/usb/devices"
 
@@ -858,17 +338,10 @@ int sysfs_get_usb_interface_adb(
   if (r < 0) 
     return r;
 
-  bool is_adb = is_adb_interface(usb_class, usb_subclass, usb_protocol);
-  bool is_fastboot = is_fastboot_interface(usb_class, usb_subclass, usb_protocol);
-  bool is_hdc = is_hdc_interface(usb_class, usb_subclass, usb_protocol);
-
-  if (!is_adb && !is_fastboot && !is_hdc) {
-    return -1;
-  }
-
-  attr.is_adb = is_adb;
-  attr.is_fastboot = is_fastboot;
-  attr.is_hdc = is_hdc;
+  attr.hasUsbClass = true;
+  attr.usbClass = usb_class;
+  attr.usbSubClass = usb_subclass;
+  attr.usbProto = usb_protocol;
 
   return sysfs_get_usb_interface_adb(
     device_dir,
@@ -921,37 +394,20 @@ void set_expect_tty_usbserial(
     const std::string &devpath,
     const std::vector<int> ifnums,
     int timeout) {
-  if (settings_.enableModprobe) {
-    DeviceState state;
-    bool is_edl = false;
-    bool is_diag = false;
-    int ifnum = 0;
+  int ifnum = 0;
 
-    if (ifnums.size() == 1 && is_edl_port(vid, pid, state)) {
-      is_edl = true;
-      ifnum = ifnums[0];
-    } else {
-      for (auto num : ifnums) {
-        if (is_diag_port(vid, pid, num)) {
-          is_diag = true;
-          ifnum = num;
-          break;
-        }
-      }
-    }
-
-    if (is_edl || is_diag) {
-      // a tty subssystem device should emerge
-      // if not, we dynamiclly do mobprobe usbserial
-      ttyCtx.timeout = timeout;
-      ttyCtx.devpath = devpath;
-      ttyCtx.vid = vid;
-      ttyCtx.pid = pid;
-      ttyCtx.is_diag = is_diag;
-      ttyCtx.ifnum = ifnum;
-      ttyCtx.time = std::chrono::steady_clock::now();
-    }
+  if (ifnums.size()) {
+    ifnum = ifnums[0];
   }
+
+    // a tty subssystem device should emerge
+    // if not, we dynamiclly do mobprobe usbserial
+  ttyCtx.timeout = timeout;
+  ttyCtx.devpath = devpath;
+  ttyCtx.vid = vid;
+  ttyCtx.pid = pid;
+  ttyCtx.ifnum = ifnum;
+  ttyCtx.time = std::chrono::steady_clock::now();
 }
 
 int sysfs_get_usb_device(
@@ -1004,13 +460,15 @@ int sysfs_get_usb_device(
   }
 
   if (!ttyFound && unknownIfs.size()) {
-    set_expect_tty_usbserial(
-      ttyCtx,
-      attr.vendor,
-      attr.product,
-      "",
-      {unknownIfs},
-      1); // expire immerately
+    if (isUsb2SerialDevice(settings_.usb2serialVidPid, attr.vendor, attr.product)) {
+      set_expect_tty_usbserial(
+        ttyCtx,
+        attr.vendor,
+        attr.product,
+        "",
+        {unknownIfs},
+        1); // expire immerately
+    }
   }
 
   return 0;
@@ -1086,11 +544,15 @@ int linux_netlink_parse_usb_interface_add(
   auto [vid, pid, _] = unpack_value(product, 16);
   auto [cls, subclass, proto] = unpack_value(interface, 10);
 
-  bool is_adb = is_adb_interface(cls, subclass, proto);
-  bool is_fastboot = is_fastboot_interface(cls, subclass, proto);
-  bool is_hdc = is_hdc_interface(cls, subclass, proto);
-
-  if (is_adb || is_fastboot || is_hdc) {
+  if (isUsb2SerialDevice(settings_.usb2serialVidPid, vid, pid)) {
+    set_expect_tty_usbserial(
+        ttyCtx,
+        vid,
+        pid,
+        devpath,
+        {ifnum},
+        1000);
+  } else {
     // construct device_path from devpath
     // strip off last interface entry
     char device_dir[MAX_PATH_LEN] = "/sys";
@@ -1102,23 +564,12 @@ int linux_netlink_parse_usb_interface_add(
     UsbInterfaceAttrs attr;
     attr.vendor = vid;
     attr.product = pid;
-    attr.is_adb = is_adb;
-    attr.is_fastboot = is_fastboot;
-    attr.is_hdc = is_hdc;
 
     return sysfs_get_usb_interface_adb(
       device_dir,
       attr,
       onInterfaceEnumerated);
   }
-
-  set_expect_tty_usbserial(
-      ttyCtx,
-      vid,
-      pid,
-      devpath,
-      {ifnum},
-      1000);
 
   return -1;
 }
@@ -1449,23 +900,8 @@ bool UsbEnumeratorNetlink::poll(bool blocking) {
             (new_time - expect_tty_.time).count();
 
     if (duration > expect_tty_.timeout) {
-      if (expect_tty_.is_diag) {
-        if (adb_booted_ > 1) {
-          expect_tty_.timeout = 0;
-          load_driver();
-        } else {
-          // diag port should come with adb port
-          // delay till adb booted
-          expect_tty_.time = new_time;
-          expect_tty_.timeout = 1000;
-        }
-        if (adb_booted_) {
-          adb_booted_++;
-        }
-      } else {
-        expect_tty_.timeout = 0;
-        load_driver();
-      }
+      expect_tty_.timeout = 0;
+      load_driver();
     }
   }
 
@@ -1496,7 +932,6 @@ bool UsbEnumeratorNetlink::poll(bool blocking) {
       [this](uint8_t busnum, uint8_t devaddr) {
         uint16_t session_id = ((uint16_t)busnum << 8) | devaddr;
         onUsbInterfaceOff(std::to_string(session_id));
-        adb_booted_ = 0;
         unload_driver();
       });
   }
@@ -1512,15 +947,11 @@ void UsbEnumeratorNetlink::enumerateDevices() {
 
 void UsbEnumeratorNetlink::sysfs_usb_interface_enumerated(const UsbInterfaceAttr* attr) {
   //printf("device %s\n", attr->tty.c_str());
-  //printf("is_diag_port %d\n", attr->ifnum);
 
   if (attr->tty.size()) {
-    DeviceState state;
-    if (!is_edl_port(attr->vendor, attr->product, state) && !is_diag_port(attr->vendor, attr->product, attr->ifnum)) {
-      if (attr->numinterfaces > 1 || attr->is_adb || attr->is_fastboot || attr->is_hdc) {
-        // normal usb serial device cannot be a compisite device
-        return;
-      }
+    if (!isUsb2SerialDevice(settings_.usb2serialVidPid, attr->vendor, attr->product)) {
+      // normal usb serial device cannot be a compisite device
+      return;
     }
   }
 
@@ -1540,34 +971,19 @@ void UsbEnumeratorNetlink::sysfs_usb_interface_enumerated(const UsbInterfaceAttr
     newnode.devpath = "/dev/" + attr->tty;
     newnode.description = attr->tty;
     // usb2serial
-    newnode.type = DeviceState::Usb | DeviceState::ComPort;
-
-    if (attr->numinterfaces == 1) {
-      is_edl_port(newnode.vid, newnode.pid, newnode.type);
-    }
-  } else if (attr->is_adb || attr->is_fastboot || attr->is_hdc) {
-    // ADB | Fastboot
-    if (attr->is_adb) {
-      newnode.type = DeviceState::Usb | DeviceState::Adb;
-      newnode.description = "ADB - " + attr->identity;
-    } else if (attr->is_fastboot) {
-      newnode.type = DeviceState::Usb | DeviceState::Fastboot;
-      newnode.description = "Fastboot - " + attr->identity;
-    } else if (attr->is_hdc) {
-      newnode.type = DeviceState::Usb | DeviceState::HDC;
-      newnode.description = "HDC - " + attr->identity;
-    }
+    newnode.type = DeviceType::Usb | DeviceType::Serial;
   } else {
-    return;
+    newnode.type = DeviceType::Usb;
+    newnode.description = "USB - " + attr->identity;
+    newnode.usbClass = attr->usbClass;
+    newnode.usbSubClass = attr->usbSubClass;
+    newnode.usbProto = attr->usbProto;
   }
 
   if (attr->productDesc.size()) {
     newnode.description = attr->productDesc + " (" + friendlyId + ")";
   }
 
-  if (newnode.type & DeviceState::Adb) {
-    adb_booted_ = 1;
-  }
   this->onUsbInterfaceEnumerated(interface_id, std::move(newnode));
   // printf("busnum %x devaddr %x vendor %x product %x [%s %s %s]\n", busnum, devaddr, vendor, product, newnode.description.c_str(), tty.c_str(), serial.c_str());
 }
@@ -1581,8 +997,9 @@ void UsbWatcherNetLink::createWatch(std::function<void(bool)> &&cb) noexcept {
 
   initCallback_ = std::move(cb);
 
-  if (settings_.enableModprobe && !process_lib::runingAsSudoer()) {
-    settings_.enableModprobe = false;
+  if (settings_.usb2serialVidPid.size() && !process_lib::runingAsSudoer()) {
+    if (initCallback_) std::move(initCallback_)(false);
+    return;
   }
 
   initialEnumerateDevices();

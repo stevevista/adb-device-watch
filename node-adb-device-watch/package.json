@@ -1,6 +1,6 @@
 {
   "name": "node-adb-device-watch",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Node.js device monitoring tool for ADB and USB devices",
   "main": "index.js",
   "type": "module",
@@ -11,7 +11,9 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "test": "node test.js",
-    "prepublishOnly": "npm test"
+    "prepare:exe": "node scripts/build-exe.js",
+    "package:exe": "node scripts/package-exe.js",
+    "prepublishOnly": "npm test && npm run package:exe"
   },
   "keywords": [
     "adb",
@@ -45,6 +47,7 @@
   "files": [
     "index.js",
     "src/",
+    "bin/",
     "README.md",
     "LICENSE"
   ]

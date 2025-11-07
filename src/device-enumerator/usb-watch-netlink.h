@@ -33,7 +33,6 @@ public:
     uint16_t vid{0};
     uint16_t pid{0};
     int ifnum;
-    bool is_diag{false};
     std::chrono::steady_clock::time_point time;
   };
 
@@ -56,7 +55,6 @@ private:
   int netlinkfd_{-1};
   UsbSerialContext expect_tty_;
   bool driver_manually_loaded_{false};
-  int adb_booted_{0};
 };
 
 class UsbWatcherNetLink : public UsbEnumeratorNetlink {

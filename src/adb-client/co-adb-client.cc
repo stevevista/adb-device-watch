@@ -158,14 +158,15 @@ enum {
   SERVER_FAILED,
 };
 
-void launch_adb_server_process(std::function<void(int)> callback) {
+template <class Fn>
+void launch_adb_server_process(Fn && callback) {
   auto adbpath = process_lib::search_exe_path("adb"
 #ifdef _WIN32
     ".exe"
 #endif
     );
   if (adbpath.empty()) {
-    callback(ADB_NOT_FOUND);
+    std::forward<Fn>(callback)(ADB_NOT_FOUND);
     return;
     // throw std::runtime_error("adb not found");
   }

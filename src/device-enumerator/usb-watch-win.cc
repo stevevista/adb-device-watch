@@ -52,6 +52,8 @@ namespace device_enumerator {
 
 namespace {
 
+constexpr uint8_t ADB_CLASS = 0xff;
+
 constexpr std::string_view kQCOMDiagDriver = "qcusbser";
 constexpr std::string_view kWinUSBDriver = "WinUSB";
 
@@ -76,9 +78,12 @@ constexpr GUID GUID_DEVINTERFACE_COMPORT = { 0x86e0d1e0, 0x8089, 0x11d0,
 
 constexpr GUID GUID_DEVINTERFACE_ADB = {0xf72fe0d4, 0xcbcb, 0x407d, {0x88, 0x14, 0x9e, 0xd6, 0x73, 0xd0, 0xdd, 0x6b}};
 
+constexpr GUID GUID_DEVINTERFACE_WINUSB = {0xdee824ef, 0x729b, 0x4a0e, {0x9c, 0x14, 0xb7, 0x11, 0x7d, 0x33, 0xa8, 0x17}};
+
 constexpr GUID kUsbGuidClasses[] = {
   GUID_DEVINTERFACE_COMPORT,
   GUID_DEVINTERFACE_ADB,
+  GUID_DEVINTERFACE_WINUSB,
 };
 constexpr size_t kUsbGuidClassesCount = sizeof(kUsbGuidClasses) / sizeof(kUsbGuidClasses[0]);
 
@@ -634,16 +639,10 @@ void queryUsbProperties(const char *interface_name, const char *hub_device_id, U
               auto ifSubClass = config.interfaces[iIndex][0].bInterfaceSubClass;
               auto ifProto = config.interfaces[iIndex][0].bInterfaceProtocol;
 
-              if (ifClass == 0xff) {
-                if (ifSubClass == 0x50 && ifProto == 0x01) {
-                  newdev.type |= DeviceState::HDC;
-                } else if (ifSubClass == 0x42 && ifProto == 0x01) {
-                  newdev.type |= DeviceState::Adb;
-
-                } else if (ifSubClass == 0x42 && ifProto == 0x03) {
-                  newdev.type |= DeviceState::Fastboot;
-                }
-              }
+              newdev.hasUsbClass = true;
+              newdev.usbClass = ifClass;
+              newdev.usbSubClass = ifSubClass;
+              newdev.usbProto = ifProto;
             }
           }
 
@@ -776,7 +775,6 @@ void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
   newdev.driver = setupDiGetServiceType(hDeviceInfo, deviceInfoData);
 
   std::string comport;
-  std::string usbPortPath;
   std::string hubDeviceId;
   DWORD hubPort;
   int interfaceNumber = -1;
@@ -794,12 +792,12 @@ void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
   }
 
   if (!queryUsbUniquePath(dev_inst,
-          usbPortPath, hubDeviceId, hubPort)) {
+          newdev.hub, hubDeviceId, hubPort)) {
     return;
   }
 
-  if (usbPortPath.size()) {
-    newdev.type |= DeviceState::Usb;
+  if (newdev.hub.size()) {
+    newdev.type |= DeviceType::Usb;
 
     // parse VID/PID from path string 
     std::match_results<const char*> m;
@@ -809,9 +807,16 @@ void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
     }
 
     queryUsbProperties(interfaceDevpath.c_str(), hubDeviceId.c_str(), hubPort, interfaceNumber, newdev);
-  }
 
-  newdev.hub = std::move(usbPortPath);
+    if (newdev.hasUsbClass) {
+      if (newdev.usbClass == ADB_CLASS) {
+        // already known in GUID_DEVINTERFACE_ADB
+        if (IsEqualGUID(*guid, GUID_DEVINTERFACE_WINUSB)) {
+          return;
+        }
+      }
+    }
+  }
 
   if (!setupDiGetInterfaceDescritption(
     hDeviceInfo,
@@ -829,10 +834,10 @@ void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
       newdev.devpath = interfaceDevpath;
     }
 
-    newdev.type |= DeviceState::ComPort;
+    newdev.type |= DeviceType::Serial;
   } else {
     if (newdev.driver == kQCOMDiagDriver) {
-      newdev.type |= DeviceState::Diag;
+      newdev.type |= DeviceType::Diag;
     }
   }
 

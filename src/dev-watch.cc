@@ -32,9 +32,8 @@ using namespace adb_client;
 
 using json = nlohmann::json;
 
-using device_enumerator::DeviceState;
 using device_enumerator::DeviceNode;
-using device_enumerator::DeviceWatcher;
+using device_enumerator::WatchThread;
 
 namespace nlohmann {
   template <>
@@ -54,9 +53,12 @@ DEFINE_bool(watch, false,
                   "watch devices changes.");
 
 #if __linux__ 
-DEFINE_bool(load_usbserial, true,
-                  "do mobprobe on missing driver.");
+DEFINE_bool(usbserial_vidpid, "",
+                  "auto load usbserial driver for specific vid:pid. e.g. 2341:2341,1234,5678");
 #endif
+
+DEFINE_string(usbserial_vidpid, "",
+                  "auto load usbserial driver for specific vid:pid. e.g. 2341:2341,1234,5678");
 
 // the following flags control device watcch
          
@@ -95,34 +97,25 @@ deviceNodeToJsonObject(const DeviceNode &dev) {
   if (dev.port) jdev["port"] = dev.port;
   if (dev.vid) jdev["vid"] = dev.vid;
   if (dev.pid) jdev["pid"] = dev.pid;
-  jdev["type"] = device_enumerator::stringfiyState(dev.type);
+  jdev["type"] = device_enumerator::DeviceTypeConverter::stringfiyType(dev.type);
   if (!dev.description.empty()) jdev["description"] = dev.description;
   
   return jdev;
 }
 
-class UsbWatcher : public DeviceWatcher {
-  std::thread thread_;
-public:
-  void onDeviceInterfaceChanged(const DeviceNode &dev) override {
-    auto jdev = deviceNodeToJsonObject(dev);
-    std::cout << jdev.dump(FLAGS_pretty ? 4 : -1) << std::endl;
-  }
+template <class T>
+requires std::is_integral_v<T>
+constexpr bool to_integral(const char* first, const char* last, T &value) {
+  int base = 10;
 
-  template <class Func>
-  void createWatchThread(Func &&f) {
-    thread_ = std::thread([this, func = std::forward<Func>(f)] {
-      createWatch(func);
-    });
+  if (first[0] == '0' && (first[1] == 'x' || first[1] == 'X')) {
+    base = 16;
+    first += 2;
   }
+  auto [ptr, ec] = std::from_chars(first, last, value, base);
+  return ec == std::errc();
+}
 
-  ~UsbWatcher() {
-    if (thread_.joinable()) {
-      deleteWatch();
-      thread_.join();
-    }
-  }
-};
 
 constexpr void parse_id_list(std::vector<uint16_t> &includes, std::vector<uint16_t> &excludes, const std::string & arg) {
   auto list = arg 
@@ -145,11 +138,7 @@ constexpr void parse_id_list(std::vector<uint16_t> &includes, std::vector<uint16
       start += 1;
     }
 
-    if (start[0] == '0' && (start[1] == 'x' || start[1] == 'X')) {
-      base = 16;
-      start += 2;
-    }
-    auto [ptr, ec] = std::from_chars(start, end, value, base);
+    to_integral(start, end, value);
 
     if (exclude) {
       excludes.push_back(value);
@@ -168,8 +157,8 @@ int main(int argc, char *argv[]) {
 #endif
 
 #if __linux__ 
-  if (FLAGS_load_usbserial && !process_lib::runingAsSudoer()) {
-    std::cerr << "require sudo privileges. " << std::end;
+  if (FLAGS_usbserial_vidpid.size() && !process::runingAsSudoer()) {
+    std::cerr << "require sudo privileges. " << std::endl;
     return 1;
   }
 #endif
@@ -182,12 +171,29 @@ int main(int argc, char *argv[]) {
 
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  UsbWatcher watcher;
-
-  DeviceWatcher::WatchSettings settings;
+  WatchThread::WatchSettings settings;
 
 #if __linux__ 
-    settings.enableModprobe = FLAGS_load_usbserial;
+  auto vidpid_list = FLAGS_usbserial_vidpid
+            | std::views::split(',')
+            | std::views::transform([](auto&& subrange) -> std::string_view {
+                return std::string_view(subrange.begin(), subrange.end());
+            })
+            | std::views::filter([](std::string_view s) {
+                return !s.empty();
+            });
+  
+  for (auto vidpid : vidpid_list) {
+    auto pos = vidpid.find(':');
+    if (pos == std::string_view::npos) {
+      std::cerr << "invalid vid:pid format: " << vidpid << std::endl;
+      return 1;
+    }
+    uint16_t vid = 0, pid = 0;
+    to_integral(vidpid.data(), vidpid.data() + pos, vid);
+    to_integral(vidpid.data() + pos + 1, vidpid.data() + vidpid.size(), pid);
+    settings.usb2serialVidPid.push_back({vid, pid});
+  }
 #endif
 
   parse_id_list(settings.includeVids, settings.excludeVids, FLAGS_vids);
@@ -202,7 +208,7 @@ int main(int argc, char *argv[]) {
             });
 
   for (auto filter : filters) {
-    settings.typeFilters.push_back(device_enumerator::stringToState(filter));
+    settings.typeFilters.push_back(device_enumerator::DeviceTypeConverter::stringToType(filter));
   }
 
   auto drivers = FLAGS_drivers
@@ -217,8 +223,6 @@ int main(int argc, char *argv[]) {
   for (auto driver : drivers) {
     settings.drivers.push_back(std::string(driver));
   }
-
-  watcher.initSettings(settings);
 
   auto ip_list = FLAGS_ip_list 
             | std::views::split(',')
@@ -240,25 +244,14 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  std::condition_variable cond;
-  std::mutex mut;
-  int create_ret{0};
-
-  watcher.createWatchThread([&](bool ret) {
-    std::lock_guard lk(mut);
-    create_ret = ret ? 2 : 1;
-    cond.notify_one();
+  auto watcher = WatchThread::create(settings, [](const DeviceNode &dev) {
+    auto jdev = deviceNodeToJsonObject(dev);
+    std::cout << jdev.dump(FLAGS_pretty ? 4 : -1) << std::endl;
   });
 
-  {
-    std::unique_lock lk(mut);
-    cond.wait(lk, [&] {
-      return create_ret != 0;
-    });
-
-    if (create_ret == 1) {
-      return 1;
-    }
+  if (!watcher) {
+    std::cerr << "create watcher failed." << std::endl;
+    return 1;
   }
 
   if (FLAGS_watch) {

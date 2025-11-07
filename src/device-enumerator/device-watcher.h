@@ -33,4 +33,101 @@ using DeviceWatcher = UsbWatcherWindows;
 using DeviceWatcher = UsbWatcherNetLink;
 #endif
 
+class WatchThread : public DeviceWatcher {
+  std::thread thread_;
+public:
+  WatchThread() = default;
+
+  ~WatchThread() {
+    stopWatch();
+    join();
+  }
+
+  template <class Func>
+  void startWatch(Func &&f) {
+    if (thread_.joinable()) {
+      std::terminate();
+    }
+    thread_ = std::thread([this, func = std::forward<Func>(f)] {
+      createWatch(func);
+    });
+  }
+
+  bool startWatchWaitResult() {
+    std::condition_variable cond;
+    std::mutex mut;
+    constexpr int CREATE_SUCCESS = 2;
+    constexpr int CREATE_FAILED = 1;
+
+    int create_ret{0};
+
+    startWatch([&](bool ret) {
+      std::lock_guard lk(mut);
+      create_ret = ret ? CREATE_SUCCESS : CREATE_FAILED;
+      cond.notify_one();
+    });
+
+    {
+      std::unique_lock lk(mut);
+      cond.wait(lk, [&] {
+        return create_ret != 0;
+      });
+
+      if (create_ret == CREATE_FAILED) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+ 
+  void stopWatch() noexcept {
+    if (thread_.joinable()) {
+      deleteWatch();
+    }
+  }
+
+  void join() noexcept {
+    if (thread_.joinable()) {
+      thread_.join();
+    }
+  }
+
+  template <class FN>
+  [[nodiscard]] static auto create(const WatchSettings &settings, FN &&callback) {
+    class Impl : public WatchThread {
+      FN callback_;
+    public:
+      Impl(FN&& callback) : callback_(std::forward<FN>(callback)) {}
+
+      void onDeviceInterfaceChanged(const DeviceNode &dev) override {
+        callback_(dev);
+      }
+    };
+
+    struct Stopper {
+        void operator()(Impl* ptr) const {
+            ptr->stopWatch();
+            ptr->join();
+            delete ptr;
+        }
+    };
+    auto watcher = std::unique_ptr<Impl, Stopper>(
+        new Impl(std::forward<FN>(callback)));
+
+    watcher->initSettings(settings);
+
+    if (!watcher->startWatchWaitResult()) {
+      return (decltype(watcher))nullptr;
+    }
+    
+    return watcher;
+  }
+
+  template <class FN>
+  [[nodiscard]] static auto create(FN &&callback) {
+    return create(WatchSettings(), std::forward<FN>(callback));
+  }
+};
+
 } // namespace device_enumerator

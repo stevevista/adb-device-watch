@@ -30,6 +30,13 @@ using namespace adb_client;
 
 namespace {
 
+constexpr uint8_t ADB_CLASS = 0xff;
+constexpr uint8_t ADB_SUBCLASS = 0x42;
+constexpr uint8_t ADB_PROTOCOL = 0x01;
+constexpr uint8_t FASTBOOT_PROTOCOL = 0x03;
+constexpr uint8_t HDC_SUBCLASS = 0x50;
+constexpr uint8_t HDC_PROTOCOL = 0x01;
+
 constexpr uint16_t QUALCOMM_VID = 0x05C6;
 constexpr uint16_t QDL_PID = 0x9008;
 constexpr int MAX_ADB_RETRY_COUNT = 60;
@@ -129,8 +136,20 @@ void UsbEnumerator::initialEnumerateDevices() {
 }
 
 void UsbEnumerator::onUsbInterfaceEnumerated(const std::string &interface_id, DeviceNode&& newdev) {
+  if (newdev.hasUsbClass) {
+    if (newdev.usbClass == ADB_CLASS) {
+      if (newdev.usbSubClass == HDC_SUBCLASS && newdev.usbProto == HDC_PROTOCOL) {
+        newdev.type |= DeviceType::HDC;
+      } else if (newdev.usbSubClass == ADB_SUBCLASS && newdev.usbProto == ADB_PROTOCOL) {
+        newdev.type |= DeviceType::Adb;
+      } else if (newdev.usbSubClass == ADB_SUBCLASS && newdev.usbProto == FASTBOOT_PROTOCOL) {
+        newdev.type |= DeviceType::Fastboot;
+      }
+    }
+  }
+
   if (newdev.vid == QUALCOMM_VID && newdev.pid == QDL_PID) {
-    newdev.type |= DeviceState::QDL;
+    newdev.type |= DeviceType::QDL;
   }
 
   if (!shouldIncludeDevice(newdev, settings_)) {
@@ -144,7 +163,7 @@ void UsbEnumerator::onUsbInterfaceEnumerated(const std::string &interface_id, De
     devices_[newdev.identity] = newdev;
   }
 
-  if ((newdev.type & (DeviceState::Adb | DeviceState::Usb)) == static_cast<uint32_t>(DeviceState::Adb | DeviceState::Usb)) {
+  if ((newdev.type & DeviceType::usbConnectedAdb) == static_cast<uint32_t>(DeviceType::usbConnectedAdb)) {
     adb_task_.push_request(Trigger { .node = std::move(newdev) });
     return;
   }
@@ -172,7 +191,7 @@ void UsbEnumerator::onDeviceInterfaceChangedToOff(const std::string &uuid) {
 
   node.off = true;
 
-  if ((node.type & (DeviceState::Adb | DeviceState::Usb)) == static_cast<uint32_t>(DeviceState::Adb | DeviceState::Usb)) {
+  if ((node.type & DeviceType::usbConnectedAdb) == static_cast<uint32_t>(DeviceType::usbConnectedAdb)) {
     adb_task_.push_request(Trigger { .node = node });
     if (node.device.empty() && node.model.empty()) {
       // means not merged with adb devices, no need notify
@@ -226,7 +245,7 @@ void UsbEnumerator::createAdbTask() {
         if (isRemoteDevice(dev.serial, &rmote.ip, &rmote.port)) {
           rmote.identity = createUuid(dev.serial);
           rmote.serial = dev.serial;
-          rmote.type = DeviceState::Adb | DeviceState::Net;
+          rmote.type = DeviceType::remoteAdb;
           merge_adb_info(rmote, std::move(dev));
           adb_serials_.push_back(std::make_pair(dev.serial, rmote.identity));
 
@@ -248,6 +267,7 @@ void UsbEnumerator::createAdbTask() {
                 std::lock_guard<std::mutex> lock(mutex_);
                 devices_[req->node.identity] = req->node;
               }
+
               onDeviceInterfaceChanged(req->node);
               req.reset();
             }
@@ -273,6 +293,5 @@ void UsbEnumerator::createAdbTask() {
 void UsbEnumerator::deleteAdbTask() {
   adb_task_.stop();
 }
-
 
 } // namespace device_enumerator

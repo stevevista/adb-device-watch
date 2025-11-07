@@ -29,16 +29,17 @@
 #include <iostream>
 #include <ranges>
 #include <list>
+#include <array>
 
 namespace device_enumerator {
 
-enum class DeviceState : uint32_t {
+enum class DeviceType : uint32_t {
   None = 0,
 
   Usb = (1 << 0),
   Net = (1 << 1),
 
-  ComPort = (1 << 2),
+  Serial = (1 << 2),
 
   Adb = (1 << 3),
   Fastboot = (1 << 4),
@@ -47,105 +48,64 @@ enum class DeviceState : uint32_t {
   Diag = (1 << 6),
   QDL = (1 << 7),
 
-  classWinUsb = Adb | Fastboot | HDC,
+  usbConnectedAdb = Adb | Usb,
+  remoteAdb = Adb | Net,
 
   All = static_cast<uint32_t>(-1),
 };
 
-template <DeviceState>
-struct DeviceStateName;
-
-template<>
-struct DeviceStateName<DeviceState::Usb> {
-  static constexpr const char *value = "usb";
-};
-
-template<>
-struct DeviceStateName<DeviceState::Net> {
-  static constexpr const char *value = "net";
-};
-
-template<>
-struct DeviceStateName<DeviceState::ComPort> {
-  static constexpr const char *value = "serial";
-};
-
-template<>
-struct DeviceStateName<DeviceState::Adb> {
-  static constexpr const char *value = "adb";
-};
-
-template<>
-struct DeviceStateName<DeviceState::Fastboot> {
-  static constexpr const char *value = "fastboot";
-};
-
-template<>
-struct DeviceStateName<DeviceState::Diag> {
-  static constexpr const char *value = "diag";
-};
-
-template<>
-struct DeviceStateName<DeviceState::HDC> {
-  static constexpr const char *value = "hdc";
-};
-
-template<>
-struct DeviceStateName<DeviceState::QDL> {
-  static constexpr const char *value = "qdloader";
-};
-
-constexpr DeviceState operator | (DeviceState a, DeviceState b) {
-  return static_cast<DeviceState>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+constexpr DeviceType operator | (DeviceType a, DeviceType b) {
+  return static_cast<DeviceType>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
 }
 
-constexpr uint32_t operator & (DeviceState a, DeviceState b) {
+constexpr uint32_t operator & (DeviceType a, DeviceType b) {
   return static_cast<uint32_t>(a) & static_cast<uint32_t>(b);
 }
 
-constexpr DeviceState operator ~ (DeviceState a) {
-  return static_cast<DeviceState>(~static_cast<uint32_t>(a));
+constexpr DeviceType operator ~ (DeviceType a) {
+  return static_cast<DeviceType>(~static_cast<uint32_t>(a));
 }
 
-constexpr DeviceState& operator &= (DeviceState& out, DeviceState a) {
-  out  = static_cast<DeviceState>(out & a);
+constexpr DeviceType& operator &= (DeviceType& out, DeviceType a) {
+  out  = static_cast<DeviceType>(out & a);
   return out;
 }
 
-constexpr DeviceState& operator |= (DeviceState& out, DeviceState a) {
-  out  = static_cast<DeviceState>(out | a);
+constexpr DeviceType& operator |= (DeviceType& out, DeviceType a) {
+  out  = static_cast<DeviceType>(out | a);
   return out;
 }
 
-template <DeviceState S>
-constexpr void appendStateIfSet(DeviceState state, std::string& str) {
-  if (S & state) {
-    if (!str.empty()) str += ",";
-    str += DeviceStateName<S>::value;
+class DeviceTypeConverter {
+  static constexpr std::array kSupportedTypes = {
+        std::pair{DeviceType::Usb, "usb"},
+        std::pair{DeviceType::Net, "net"},
+        std::pair{DeviceType::Serial, "serial"},
+        std::pair{DeviceType::Adb, "adb"},
+        std::pair{DeviceType::Fastboot, "fastboot"},
+        std::pair{DeviceType::HDC, "hdc"},
+        std::pair{DeviceType::Diag, "diag"},
+        std::pair{DeviceType::QDL, "qdl"}
+    };
+
+public:
+  static constexpr std::string stringfiyType(DeviceType state) {
+    std::string str;
+
+    if (state == DeviceType::None)
+      return str;
+        
+    for (const auto& [type, name] : kSupportedTypes) {
+      if (state & type) {
+        if (!str.empty()) str += ",";
+        str += name;
+      }
+    }
+    return str;
   }
-}
 
-template <DeviceState... States>
-constexpr void stringfiyStateT(DeviceState state, std::string& str) {
-  (appendStateIfSet<States>(state, str), ...);
-}
-
-template <DeviceState... AllStates>
-constexpr DeviceState stringToSingleState(std::string_view str) {
-    DeviceState result = DeviceState::None;
-
-    (([]<DeviceState S>(std::string_view str, DeviceState& result) {
-        if (str == DeviceStateName<S>::value) {
-            result = S;
-        }
-    }.template operator()<AllStates>(str, result)), ...);
-    
-    return result;
-}
-
-template <DeviceState... AllStates>
-constexpr DeviceState stringToStateT(std::string_view str) {
-  auto tokens = str | std::views::split(',')
+  static constexpr DeviceType stringToType(std::string_view str) {
+    auto tokens = str | std::views::split(',')
             | std::views::transform([](auto&& subrange) {
                 std::string_view sv(subrange.begin(), subrange.end());
                 auto start = sv.find_first_not_of(" \t\n\r");
@@ -154,43 +114,18 @@ constexpr DeviceState stringToStateT(std::string_view str) {
                 return sv.substr(start, end - start + 1);
             });
     
-  auto state = DeviceState::None;
-  for (auto t : tokens) {
-    state |= stringToSingleState<AllStates...>(t);
+    auto state = DeviceType::None;
+    for (auto t : tokens) {
+      for (const auto& [type, name] : kSupportedTypes) {
+        if (t == name) {
+          state |= type;
+          break;
+        }
+      }
+    }
+    return state;
   }
-  return state;
-}
-
-constexpr std::string stringfiyState(DeviceState state) {
-  if (state == DeviceState::None)
-      return "";
-
-  std::string out;
-
-  stringfiyStateT<
-        DeviceState::Usb,
-        DeviceState::Net,
-        DeviceState::ComPort,
-        DeviceState::Adb,
-        DeviceState::Fastboot,
-        DeviceState::HDC,
-        DeviceState::Diag,
-        DeviceState::QDL>(state, out);
-
-  return out;
-}
-
-constexpr DeviceState stringToState(std::string_view str) {
-  return stringToStateT<
-        DeviceState::Usb,
-        DeviceState::Net,
-        DeviceState::ComPort,
-        DeviceState::Adb,
-        DeviceState::Fastboot,
-        DeviceState::HDC,
-        DeviceState::Diag,
-        DeviceState::QDL>(str);
-}
+};
 
 struct DeviceNode {
   std::string identity;
@@ -216,20 +151,27 @@ struct DeviceNode {
   uint16_t pid{0};
   // UsbSpeed speed;
 
-  DeviceState type{DeviceState::None};
+  bool hasUsbClass{false};
+  uint8_t usbClass{0};
+  uint8_t usbSubClass{0};
+  uint8_t usbProto{0};
+
+  DeviceType type{DeviceType::None};
   bool off{false};
 };
 
 class UsbEnumerator {
 public:
   struct WatchSettings {
-    std::vector<DeviceState> typeFilters;
+    std::vector<DeviceType> typeFilters;
     std::vector<uint16_t> includeVids;
     std::vector<uint16_t> excludeVids;
     std::vector<uint16_t> includePids;
     std::vector<uint16_t> excludePids;
     std::vector<std::string> drivers;
-    bool enableModprobe{false}; // used in linux to auto loader usb2serial mod
+#if __linux__ 
+    std::vector<std::pair<uint16_t, uint16_t>> usb2serialVidPid;
+#endif
   };
 
   void initSettings(const WatchSettings &settings);
