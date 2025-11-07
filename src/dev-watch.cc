@@ -99,7 +99,12 @@ deviceNodeToJsonObject(const DeviceNode &dev) {
   if (dev.pid) jdev["pid"] = dev.pid;
   jdev["type"] = device_enumerator::DeviceTypeConverter::stringfiyType(dev.type);
   if (!dev.description.empty()) jdev["description"] = dev.description;
-  
+  if (dev.hasUsbClass) {
+    jdev["usbClass"] = dev.usbClass;
+    jdev["usbSubClass"] = dev.usbSubClass;
+    jdev["usbProto"] = dev.usbProto;
+  }
+
   return jdev;
 }
 

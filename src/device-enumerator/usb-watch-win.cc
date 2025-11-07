@@ -52,8 +52,6 @@ namespace device_enumerator {
 
 namespace {
 
-constexpr uint8_t ADB_CLASS = 0xff;
-
 constexpr std::string_view kQCOMDiagDriver = "qcusbser";
 constexpr std::string_view kWinUSBDriver = "WinUSB";
 
@@ -774,6 +772,11 @@ void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
   DeviceNode newdev;
   newdev.driver = setupDiGetServiceType(hDeviceInfo, deviceInfoData);
 
+  if (!IsEqualGUID(*guid, GUID_DEVINTERFACE_WINUSB) &&  newdev.driver == kWinUSBDriver) {
+    //already known in GUID_DEVINTERFACE_WINUSB
+    return;
+  }
+
   std::string comport;
   std::string hubDeviceId;
   DWORD hubPort;
@@ -807,15 +810,6 @@ void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
     }
 
     queryUsbProperties(interfaceDevpath.c_str(), hubDeviceId.c_str(), hubPort, interfaceNumber, newdev);
-
-    if (newdev.hasUsbClass) {
-      if (newdev.usbClass == ADB_CLASS) {
-        // already known in GUID_DEVINTERFACE_ADB
-        if (IsEqualGUID(*guid, GUID_DEVINTERFACE_WINUSB)) {
-          return;
-        }
-      }
-    }
   }
 
   if (!setupDiGetInterfaceDescritption(
@@ -827,10 +821,13 @@ void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
     return;
   }
 
+  if (comport.size()) {
+    newdev.devpath = std::move(comport);
+    newdev.type |= DeviceType::Serial;
+  }
+
   if (IsEqualGUID(*guid, GUID_DEVINTERFACE_COMPORT)) {
-    if (comport.size()) {
-      newdev.devpath = std::move(comport);
-    } else {
+    if (newdev.devpath.empty()) {
       newdev.devpath = interfaceDevpath;
     }
 
