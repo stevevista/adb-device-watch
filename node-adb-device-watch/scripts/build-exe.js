@@ -1,9 +1,5 @@
-import { existsSync, mkdirSync, copyFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { existsSync, mkdirSync, copyFileSync } = require('fs');
+const { join, dirname } = require('path');
 
 async function prepareExe() {
   console.log('🚀 Preparing pre-built adb-device-watch executable...');

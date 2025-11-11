@@ -93,32 +93,33 @@ public:
     }
   }
 
+  struct WatchStopper {
+    void operator()(WatchThread* ptr) const {
+      ptr->stopWatch();
+      ptr->join();
+      delete ptr;
+    }
+  };
+
   template <class FN>
-  [[nodiscard]] static auto create(const WatchSettings &settings, FN &&callback) {
+  [[nodiscard]] static std::unique_ptr<WatchThread, WatchStopper> create(const WatchSettings &settings, FN &&callback) {
     class Impl : public WatchThread {
       FN callback_;
     public:
       Impl(FN&& callback) : callback_(std::forward<FN>(callback)) {}
 
-      void onDeviceInterfaceChanged(const DeviceNode &dev) override {
+      void onDeviceInterfaceChanged(const DeviceInterface &dev) override {
         callback_(dev);
       }
     };
 
-    struct Stopper {
-        void operator()(Impl* ptr) const {
-            ptr->stopWatch();
-            ptr->join();
-            delete ptr;
-        }
-    };
-    auto watcher = std::unique_ptr<Impl, Stopper>(
+    auto watcher = std::unique_ptr<Impl, WatchStopper>(
         new Impl(std::forward<FN>(callback)));
 
     watcher->initSettings(settings);
 
     if (!watcher->startWatchWaitResult()) {
-      return (decltype(watcher))nullptr;
+      return nullptr;
     }
     
     return watcher;

@@ -33,10 +33,10 @@ namespace device_enumerator {
 
 template <class REQ = void>
 class task_thread {
-  bool stop_requested_{false};
   std::mutex mutex_;
   std::condition_variable condition_;
   std::thread thread_;
+  bool stop_requested_{false};
   bool consume_all_requests_{false};
 
   struct None {};
@@ -122,9 +122,10 @@ public:
       std::lock_guard lk(mutex_);
       stop_requested_ = false;
     }
-  
+
     thread_ = std::thread([this, rel_time, func = std::forward<Function>(f)] 
                              (auto&&... params) {
+
       func(std::nullopt, std::forward<decltype(params)>(params)...);
 
       for (;;) {
@@ -244,6 +245,7 @@ public:
   }
 
   void set_consume_all_requests(bool consume_all) {
+    std::lock_guard lk(mutex_);
     consume_all_requests_ = consume_all;
   }
 };

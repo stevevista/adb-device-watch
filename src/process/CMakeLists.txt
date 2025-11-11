@@ -1,9 +1,13 @@
-PROJECT(process-lib VERSION 1 LANGUAGES CXX)
+PROJECT(dev-watch-process VERSION 1 LANGUAGES CXX)
 
-add_library(${PROJECT_NAME}
+set_taret_name(TARGET ${PROJECT_NAME})
+
+add_library(${TARGET}
   process.cc
   process-output.cc
   process-output.h
   process.h)
 
-target_include_directories(${PROJECT_NAME} INTERFACE ..)
+select_msvc_runtime_library(${TARGET})
+
+add_library(${DEVICE_WATCH_NS}::process ALIAS ${TARGET})

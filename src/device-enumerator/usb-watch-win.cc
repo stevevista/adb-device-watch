@@ -42,8 +42,6 @@
 #include <usbscan.h>
 #include <winusb.h>
 
-#include "adb-client.h"
-
 #pragma comment(lib,"setupapi.lib") 
 #pragma comment(lib, "Cfgmgr32.lib")
 #pragma comment(lib, "Winusb.lib")
@@ -52,7 +50,7 @@ namespace device_enumerator {
 
 namespace {
 
-constexpr std::string_view kQCOMDiagDriver = "qcusbser";
+constexpr std::string_view kQCOMSerialDriver = "qcusbser";
 constexpr std::string_view kWinUSBDriver = "WinUSB";
 
 
@@ -536,7 +534,7 @@ std::string queryUsbStringDescriptor(HANDLE hHubHandle, DWORD port, UCHAR iIndex
   return ret;
 }
 
-void queryUsbProperties(const char *interface_name, const char *hub_device_id, ULONG connectionIndex, int interfaceNumber, DeviceNode &newdev) {
+void queryUsbProperties(const char *interface_name, const char *hub_device_id, ULONG connectionIndex, int interfaceNumber, DeviceInterface &newdev) {
   auto path = setupDiGetDevpathByDevId(&GUID_DEVINTERFACE_USB_HUB, hub_device_id);
   HANDLE hub_handle = CreateFileA(path.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 
@@ -769,7 +767,7 @@ void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
   const PSP_DEVINFO_DATA deviceInfoData,
   const std::string &interfaceDevpath
 ) {
-  DeviceNode newdev;
+  DeviceInterface newdev;
   newdev.driver = setupDiGetServiceType(hDeviceInfo, deviceInfoData);
 
   if (!IsEqualGUID(*guid, GUID_DEVINTERFACE_WINUSB) &&  newdev.driver == kWinUSBDriver) {
@@ -824,18 +822,16 @@ void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
   if (comport.size()) {
     newdev.devpath = std::move(comport);
     newdev.type |= DeviceType::Serial;
-  }
-
-  if (IsEqualGUID(*guid, GUID_DEVINTERFACE_COMPORT)) {
+  } else if (IsEqualGUID(*guid, GUID_DEVINTERFACE_COMPORT)) {
     if (newdev.devpath.empty()) {
       newdev.devpath = interfaceDevpath;
     }
 
     newdev.type |= DeviceType::Serial;
-  } else {
-    if (newdev.driver == kQCOMDiagDriver) {
-      newdev.type |= DeviceType::Diag;
-    }
+  }
+
+  if (newdev.driver == kQCOMSerialDriver) {
+    newdev.type |= DeviceType::Diag;
   }
 
   onUsbInterfaceEnumerated(interfaceDevpath, std::move(newdev));

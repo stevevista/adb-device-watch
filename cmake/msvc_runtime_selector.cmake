@@ -1,0 +1,21 @@
+macro(select_msvc_runtime_library target)
+  if (MSVC)
+    if (DEFINED DEVICE_WATCH_MSVC_RUNTIME)
+      if (${DEVICE_WATCH_MSVC_RUNTIME} STREQUAL MD)
+        set_property(TARGET ${target} PROPERTY
+            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+      elseif (${DEVICE_WATCH_MSVC_RUNTIME} STREQUAL MT)
+        set_property(TARGET ${target} PROPERTY
+            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+      endif()
+    endif()
+  endif()
+endmacro()
+
+macro(set_taret_name output_var name)
+  if(NOT DEFINED DEVICE_WATCH_TARGET_PREFIX OR "${DEVICE_WATCH_TARGET_PREFIX}" STREQUAL "")
+    set(${output_var} "${name}")
+  else()
+    set(${output_var} "${DEVICE_WATCH_TARGET_PREFIX}_${name}")
+  endif()
+endmacro()

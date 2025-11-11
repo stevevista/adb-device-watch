@@ -19,6 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import { startDeviceWatch } from './src/device-watcher.js';
+const { startDeviceWatch } = require('./src/device-watcher.js');
 
-export { startDeviceWatch }
+module.exports = { startDeviceWatch };

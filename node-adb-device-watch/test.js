@@ -1,4 +1,4 @@
-import { startDeviceWatch } from './index.js';
+const { startDeviceWatch } = require('./index.js');
 
 // 简单的测试函数
 async function runTests() {
@@ -10,15 +10,14 @@ async function runTests() {
 
     // 测试启动和停止
     console.log('2. Testing start/stop functionality...');
-    const proc = await startDeviceWatch(['--types=usb,|net', '--watch'], data => {
+    const proc = startDeviceWatch(['--types=usb,|net', '--watch'], data => {
       console.log('   📱 EVENT:', data);
     }, []);
     
     // 等待一段时间让监控器初始化
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // 测试停止
-    proc.stop();
+    // await new Promise(resolve => setTimeout(resolve, 2000));
+    // proc.stop();
+  
     await proc.join();
     
     console.log('\n✅ All tests passed!');

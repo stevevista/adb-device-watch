@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "device-enumerator/device-watcher.h"
-#include "adb-client.h"
+#include "adb-client/adb-client.h"
 #include <gflags/gflags.h>
 #include <mutex>
 #include <thread>
@@ -32,7 +32,7 @@ using namespace adb_client;
 
 using json = nlohmann::json;
 
-using device_enumerator::DeviceNode;
+using device_enumerator::DeviceInterface;
 using device_enumerator::WatchThread;
 
 namespace nlohmann {
@@ -80,7 +80,7 @@ DEFINE_string(ip_list, "",
 namespace {
 
 json 
-deviceNodeToJsonObject(const DeviceNode &dev) {
+deviceNodeToJsonObject(const DeviceInterface &dev) {
   json jdev;
   
   jdev["id"] = dev.identity;
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  auto watcher = WatchThread::create(settings, [](const DeviceNode &dev) {
+  auto watcher = WatchThread::create(settings, [](const DeviceInterface &dev) {
     auto jdev = deviceNodeToJsonObject(dev);
     std::cout << jdev.dump(FLAGS_pretty ? 4 : -1) << std::endl;
   });

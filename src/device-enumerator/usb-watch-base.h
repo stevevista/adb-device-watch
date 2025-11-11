@@ -127,7 +127,7 @@ public:
   }
 };
 
-struct DeviceNode {
+struct DeviceInterface {
   std::string identity;
 
   std::string devpath;
@@ -185,11 +185,11 @@ protected:
   void deleteAdbTask();
   void initialEnumerateDevices();
 
-  void onUsbInterfaceEnumerated(const std::string &interface_id, DeviceNode&& newdev);
+  void onUsbInterfaceEnumerated(const std::string &interface_id, DeviceInterface&& newdev);
   void onUsbInterfaceOff(const std::string &interface_id);
 
   virtual void enumerateDevices() = 0;
-  virtual void onDeviceInterfaceChanged(const DeviceNode &) {}
+  virtual void onDeviceInterfaceChanged(const DeviceInterface &) {}
 
 protected:
   WatchSettings settings_;
@@ -201,12 +201,12 @@ private:
   // <serial, uuid>
   std::list<std::pair<std::string, std::string>> adb_serials_;
 
-  struct Trigger { DeviceNode node; int round{0}; };
+  struct Trigger { DeviceInterface node; int round{0}; };
   task_thread<Trigger> adb_task_;
 
   std::mutex mutex_;
   // <identity, device>
-  std::unordered_map<std::string, DeviceNode> devices_;
+  std::unordered_map<std::string, DeviceInterface> cached_interfaces_;
 };
 
 } // namespace device_enumerator

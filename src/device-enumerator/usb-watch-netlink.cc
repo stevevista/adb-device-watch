@@ -955,7 +955,7 @@ void UsbEnumeratorNetlink::sysfs_usb_interface_enumerated(const UsbInterfaceAttr
     }
   }
 
-  DeviceNode newnode;
+  DeviceInterface newnode;
   newnode.hub = attr->identity;
   newnode.vid = attr->vendor;
   newnode.pid = attr->product;
