@@ -15,8 +15,8 @@ async function runTests() {
     }, []);
     
     // 等待一段时间让监控器初始化
-    // await new Promise(resolve => setTimeout(resolve, 2000));
-    // proc.stop();
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    proc.stop();
   
     await proc.join();
     
