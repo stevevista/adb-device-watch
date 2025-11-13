@@ -635,7 +635,6 @@ void queryUsbProperties(const char *interface_name, const char *hub_device_id, U
               auto ifSubClass = config.interfaces[iIndex][0].bInterfaceSubClass;
               auto ifProto = config.interfaces[iIndex][0].bInterfaceProtocol;
 
-              newdev.hasUsbClass = true;
               newdev.usbClass = ifClass;
               newdev.usbSubClass = ifSubClass;
               newdev.usbProto = ifProto;
@@ -796,6 +795,8 @@ void UsbEnumeratorWindows::handleUsbInterfaceEnumated(
           newdev.hub, hubDeviceId, hubPort)) {
     return;
   }
+
+  newdev.usbIf = interfaceNumber;
 
   if (newdev.hub.size()) {
     newdev.type |= DeviceType::Usb;

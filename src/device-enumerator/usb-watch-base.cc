@@ -126,7 +126,9 @@ void UsbEnumerator::initSettings(const WatchSettings &settings) {
 }
 
 void UsbEnumerator::initialEnumerateDevices() {
-  createAdbTask();
+  if (settings_.enableAdbClient) {
+    createAdbTask();
+  }
 
   enumerateDevices();
 
@@ -136,7 +138,7 @@ void UsbEnumerator::initialEnumerateDevices() {
 }
 
 void UsbEnumerator::onUsbInterfaceEnumerated(const std::string &interface_id, DeviceInterface&& newdev) {
-  if (newdev.hasUsbClass) {
+  if (newdev.type & DeviceType::Usb) {
     if (newdev.usbClass == ADB_CLASS) {
       if (newdev.usbSubClass == HDC_SUBCLASS && newdev.usbProto == HDC_PROTOCOL) {
         newdev.type |= DeviceType::HDC;
@@ -164,16 +166,61 @@ void UsbEnumerator::onUsbInterfaceEnumerated(const std::string &interface_id, De
   }
 
   if ((newdev.type & DeviceType::usbConnectedAdb) == static_cast<uint32_t>(DeviceType::usbConnectedAdb)) {
-    adb_task_.push_request(Trigger { .node = std::move(newdev) });
-    return;
+    if (settings_.enableAdbClient) {
+      adb_task_.push_request(Trigger { .node = std::move(newdev) });
+      return;
+    }
   }
 
-  onDeviceInterfaceChanged(newdev);
+  onDeviceInterfaceChangedWrap(newdev);
 }
 
 void UsbEnumerator::onUsbInterfaceOff(const std::string &interface_id) {
   auto uuid = createUuid(interface_id);
   onDeviceInterfaceChangedToOff(uuid);
+}
+
+void UsbEnumerator::onDeviceInterfaceChangedWrap(const DeviceInterface &node) {
+  onDeviceInterfaceChanged(node);
+
+  if (settings_.enableCompositeDevice) {
+    std::string id;
+    if (node.type & DeviceType::Usb) {
+      id = node.hub;
+    } else if (node.type & DeviceType::Serial) {
+      id = node.devpath;
+    } else if (node.type & DeviceType::Net) {
+      id = node.ip;
+    } else {
+      return;
+    }
+
+    CompositeDevice dev;
+
+    {
+      std::lock_guard lock(mutex_);
+      if (node.off) {
+        auto it = cached_composite_devices_.find(id);
+        if (it == cached_composite_devices_.end()) {
+          return;
+        }
+        dev = std::move(it->second);
+        cached_composite_devices_.erase(it);
+      } else {
+        auto it = cached_composite_devices_.find(id);
+        if (it == cached_composite_devices_.end()) {
+          dev = CompositeDevice{ .identity = id, .interfaces = {node}, .type = node.type };
+          cached_composite_devices_.emplace(id, dev);
+        } else {
+          it->second.interfaces.push_back(node);
+          it->second.type |= node.type;
+          dev = it->second;
+        }
+      }
+    }
+    
+    onCompositeDeviceChanged(dev, node); 
+  } // enableCompositeDevice
 }
 
 void UsbEnumerator::onDeviceInterfaceChangedToOff(const std::string &uuid) {
@@ -192,14 +239,16 @@ void UsbEnumerator::onDeviceInterfaceChangedToOff(const std::string &uuid) {
   node.off = true;
 
   if ((node.type & DeviceType::usbConnectedAdb) == static_cast<uint32_t>(DeviceType::usbConnectedAdb)) {
-    adb_task_.push_request(Trigger { .node = node });
-    if (node.device.empty() && node.model.empty()) {
-      // means not merged with adb devices, no need notify
-      return;
+    if (settings_.enableAdbClient) {
+      adb_task_.push_request(Trigger { .node = node });
+      if (node.device.empty() && node.model.empty()) {
+        // means not merged with adb devices, no need notify
+        return;
+      }
     }
   }
 
-  onDeviceInterfaceChanged(node);
+  onDeviceInterfaceChangedWrap(node);
 }
 
 namespace {
@@ -255,7 +304,7 @@ void UsbEnumerator::createAdbTask() {
               cached_interfaces_[rmote.identity] = rmote;
             }
 
-            onDeviceInterfaceChanged(rmote);
+            onDeviceInterfaceChangedWrap(rmote);
           }
         } else {
           if (req.has_value()) {
@@ -268,7 +317,7 @@ void UsbEnumerator::createAdbTask() {
                 cached_interfaces_[req->node.identity] = req->node;
               }
 
-              onDeviceInterfaceChanged(req->node);
+              onDeviceInterfaceChangedWrap(req->node);
               req.reset();
             }
           }

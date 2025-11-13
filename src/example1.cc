@@ -149,9 +149,9 @@ public:
   void start() {
     WatchThread::WatchSettings settings;
 
-    watcher_ = WatchThread::create(settings, [this](const DeviceInterface &node) {
+    watcher_ = WatchThread::create([this](const DeviceInterface &node) {
       on_node_event(node);
-    });
+    }, settings);
   }
 
   bool waitFor(const char *target, uint32_t flags, int64_t milliseconds_timeout, Device &dev) noexcept {
@@ -206,6 +206,7 @@ public:
 };
 
 int main() {
+  /*
   UsbWatcher watcher;
   watcher.set_callback([](const auto& dev, uint32_t flags) {
     std::cout << "device " << dev.id << " flags: " << dev.flags << std::endl;
@@ -216,6 +217,15 @@ int main() {
   watcher.waitForOff(nullptr, -1);
 
   std::cout << "device off: " << dev.id << " flags: " << dev.flags << std::endl;
+  */
+
+  device_enumerator::WatchWaiter waiter;
+  device_enumerator::DeviceInterface dev;
+  dev.type = DeviceType::Adb;
+  WatchThread::WatchSettings settings;
+  waiter.start(settings);
+  waiter.wait_for(dev);
+  std::cout << "device: " << dev.identity << std::endl;
 
   getchar();
   return 0;

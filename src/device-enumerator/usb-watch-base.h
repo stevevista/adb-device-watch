@@ -151,18 +151,26 @@ struct DeviceInterface {
   uint16_t pid{0};
   // UsbSpeed speed;
 
-  bool hasUsbClass{false};
   uint8_t usbClass{0};
   uint8_t usbSubClass{0};
   uint8_t usbProto{0};
+  int usbIf{-1}; // >= 0 means composite deviced
 
   DeviceType type{DeviceType::None};
   bool off{false};
 };
 
+struct CompositeDevice {
+  std::string identity; // usbid, comport, or IP
+  std::vector<DeviceInterface> interfaces;
+  DeviceType type{DeviceType::None};
+};
+
 class UsbEnumerator {
 public:
   struct WatchSettings {
+    bool enableAdbClient{true};
+    bool enableCompositeDevice{false};
     std::vector<DeviceType> typeFilters;
     std::vector<uint16_t> includeVids;
     std::vector<uint16_t> excludeVids;
@@ -181,23 +189,26 @@ public:
 protected:
   UsbEnumerator() = default;
 
-  void createAdbTask();
   void deleteAdbTask();
   void initialEnumerateDevices();
 
   void onUsbInterfaceEnumerated(const std::string &interface_id, DeviceInterface&& newdev);
   void onUsbInterfaceOff(const std::string &interface_id);
 
+ private: 
   virtual void enumerateDevices() = 0;
   virtual void onDeviceInterfaceChanged(const DeviceInterface &) {}
+  virtual void onCompositeDeviceChanged(const CompositeDevice &, const DeviceInterface &) {}
+
+  void createAdbTask();
+  void onDeviceInterfaceChangedWrap(const DeviceInterface &);
+  void onDeviceInterfaceChangedToOff(const std::string &uuid);
 
 protected:
   WatchSettings settings_;
   std::function<void(bool)> initCallback_;
 
 private:
-  void onDeviceInterfaceChangedToOff(const std::string &uuid);
-
   // <serial, uuid>
   std::list<std::pair<std::string, std::string>> adb_serials_;
 
@@ -207,6 +218,7 @@ private:
   std::mutex mutex_;
   // <identity, device>
   std::unordered_map<std::string, DeviceInterface> cached_interfaces_;
+  std::unordered_map<std::string, CompositeDevice> cached_composite_devices_;
 };
 
 } // namespace device_enumerator

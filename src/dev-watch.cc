@@ -99,10 +99,11 @@ deviceNodeToJsonObject(const DeviceInterface &dev) {
   if (dev.pid) jdev["pid"] = dev.pid;
   jdev["type"] = device_enumerator::DeviceTypeConverter::stringfiyType(dev.type);
   if (!dev.description.empty()) jdev["description"] = dev.description;
-  if (dev.hasUsbClass) {
+  if (dev.type & device_enumerator::DeviceType::Usb) {
     jdev["usbClass"] = dev.usbClass;
     jdev["usbSubClass"] = dev.usbSubClass;
     jdev["usbProto"] = dev.usbProto;
+    jdev["usbIf"] = dev.usbIf;
   }
 
   return jdev;
@@ -249,10 +250,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  auto watcher = WatchThread::create(settings, [](const DeviceInterface &dev) {
+  auto watcher = WatchThread::create([](const DeviceInterface &dev) {
     auto jdev = deviceNodeToJsonObject(dev);
     std::cout << jdev.dump(FLAGS_pretty ? 4 : -1) << std::endl;
-  });
+  }, settings);
 
   if (!watcher) {
     std::cerr << "create watcher failed." << std::endl;

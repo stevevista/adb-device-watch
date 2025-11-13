@@ -46,7 +46,7 @@ namespace DevWatchSharp
         public string description { get; set; }
         public int vid { get; set; }
         public int pid { get; set; }
-        public bool hasUsbClass { get; set; }
+        public int usbIf { get; set; }
         public int usbClass { get; set; }
         public int usbSubClass { get; set; }
         public int usbProto { get; set; }

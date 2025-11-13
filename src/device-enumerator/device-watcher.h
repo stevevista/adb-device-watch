@@ -102,7 +102,8 @@ public:
   };
 
   template <class FN>
-  [[nodiscard]] static std::unique_ptr<WatchThread, WatchStopper> create(const WatchSettings &settings, FN &&callback) {
+  requires std::invocable<FN, const DeviceInterface &>
+  [[nodiscard]] static std::unique_ptr<WatchThread, WatchStopper> create(FN &&callback, const WatchSettings &settings = {}) {
     class Impl : public WatchThread {
       FN callback_;
     public:
@@ -121,13 +122,130 @@ public:
     if (!watcher->startWatchWaitResult()) {
       return nullptr;
     }
-    
+
     return watcher;
   }
 
   template <class FN>
-  [[nodiscard]] static auto create(FN &&callback) {
-    return create(WatchSettings(), std::forward<FN>(callback));
+  requires std::invocable<FN, const CompositeDevice &, const DeviceInterface &>
+  [[nodiscard]] static std::unique_ptr<WatchThread, WatchStopper> create(FN &&callback, WatchSettings settings = {}) {
+    class Impl : public WatchThread {
+      FN callback_;
+    public:
+      Impl(FN&& callback) : callback_(std::forward<FN>(callback)) {}
+
+      void onCompositeDeviceChanged(const CompositeDevice &dev, const DeviceInterface &node) override {
+        callback_(dev, node);
+      }
+    };
+
+    auto watcher = std::unique_ptr<Impl, WatchStopper>(
+        new Impl(std::forward<FN>(callback)));
+
+    settings.enableCompositeDevice = true;
+    watcher->initSettings(settings);
+
+    if (!watcher->startWatchWaitResult()) {
+      return nullptr;
+    }
+
+    return watcher;
+  }
+};
+
+class WatchWaiter {
+  std::unique_ptr<WatchThread, WatchThread::WatchStopper> watcher_;
+  std::mutex mutex_;
+  DeviceInterface *wait_if_{nullptr};
+  std::condition_variable cond_;
+  std::unordered_map<std::string, DeviceInterface> ifs_;
+
+  constexpr bool test_match(const DeviceInterface &target, const DeviceInterface &iface) const {
+    return (target.off == iface.off) &&
+            (target.type == DeviceType::None || (target.type & iface.type)) &&
+            (target.identity.empty() || target.identity == iface.identity) &&
+            (target.devpath.empty() || target.devpath == iface.devpath) &&
+            (target.hub.empty() || target.hub == iface.hub) &&
+            (target.serial.empty() || target.serial == iface.serial) &&
+            (target.ip.empty() || target.ip == iface.ip) &&
+            (target.driver.empty() || target.driver == iface.driver) &&
+            (target.port == 0 || target.port == iface.port) &&
+            (target.vid == 0 || target.vid == iface.vid) &&
+            (target.pid == 0 || target.pid == iface.pid) &&
+            (target.usbClass == 0 || target.usbClass == iface.usbClass) &&
+            (target.usbSubClass == 0 || target.usbSubClass == iface.usbSubClass) &&
+            (target.usbProto == 0 || target.usbProto == iface.usbProto);
+  }
+
+  bool match_target(DeviceInterface &target) const {
+    for (auto &[id, iface] : ifs_) {
+      if (test_match(target, iface)) {
+        target = iface;
+        return true;
+      }
+    }
+    return false;
+  }
+
+public:
+  bool start(const WatchThread::WatchSettings &settings = {}) {
+    watcher_ = WatchThread::create([this](const DeviceInterface &node) {
+      std::unique_lock lock(mutex_);
+
+      ifs_[node.identity] = std::move(node);
+
+      if (wait_if_ != nullptr) {
+        if (match_target(*wait_if_)) {
+          wait_if_ = nullptr;
+          lock.unlock();
+          cond_.notify_all();
+          lock.lock();
+        }
+      }
+    }, settings);
+
+    return watcher_ != nullptr;
+  }
+
+  bool wait_for(DeviceInterface &node, int64_t milliseconds_timeout = -1) noexcept {
+    std::unique_lock lock(mutex_);
+
+    if (match_target(node)) {
+      return true;
+    }
+
+    wait_if_ = &node;
+
+    if (milliseconds_timeout < 0) {
+      cond_.wait(lock, [this] {
+        return wait_if_ == nullptr;
+      });
+    } else {
+      cond_.wait_for(lock, std::chrono::milliseconds(milliseconds_timeout), [this] {
+        return wait_if_ == nullptr;
+      });
+    }
+    if (wait_if_) {
+      wait_if_ = nullptr;
+      return false;
+    }
+    return true;
+  }
+
+  std::vector<DeviceInterface> get_all(const DeviceInterface *filter) {
+    std::vector<DeviceInterface> devices;
+
+    std::lock_guard lock(mutex_);
+    for (auto &[id, iface] : ifs_) {
+      if (filter == nullptr || test_match(*filter, iface)) {
+        devices.push_back(iface);
+      }
+    }
+    return devices;
+  }
+
+  void stop() {
+    watcher_.reset();
   }
 };
 

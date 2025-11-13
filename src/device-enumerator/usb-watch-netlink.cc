@@ -83,7 +83,6 @@ struct UsbEnumeratorNetlink::UsbInterfaceAttr {
   std::string serial;
   std::string productDesc;
   int ifnum{-1};
-  bool hasUsbClass{false};
   uint8_t usbClass{0};
   uint8_t usbSubClass{0};
   uint8_t usbProto{0};
@@ -338,7 +337,6 @@ int sysfs_get_usb_interface_adb(
   if (r < 0) 
     return r;
 
-  attr.hasUsbClass = true;
   attr.usbClass = usb_class;
   attr.usbSubClass = usb_subclass;
   attr.usbProto = usb_protocol;
@@ -960,6 +958,7 @@ void UsbEnumeratorNetlink::sysfs_usb_interface_enumerated(const UsbInterfaceAttr
   newnode.vid = attr->vendor;
   newnode.pid = attr->product;
   newnode.serial = attr->serial;
+  newnode.usbIf = attr->ifnum;
 
   uint16_t session_id = ((uint16_t)attr->busnum << 8) | attr->devaddr;
   auto interface_id = std::to_string(session_id);
