@@ -53,18 +53,6 @@ class task_thread {
     
   [[no_unique_address]] QueueType reqs_;
 
-  void stop_impl() {
-    {
-      std::lock_guard lk(mutex_);
-      stop_requested_ = true;
-    }
-    condition_.notify_all();
-        
-    if (thread_.joinable()) {
-      thread_.join();
-    }
-  }
-
   void clear_queue() {
     if constexpr (!std::is_void_v<REQ>) {
       std::lock_guard lk(mutex_);
@@ -192,7 +180,7 @@ public:
   task_thread() = default;
 
   ~task_thread() {
-    stop_impl();
+    stop();
   }
 
   task_thread(const task_thread&) = delete;
@@ -201,6 +189,10 @@ public:
   task_thread& operator=(task_thread&& other) = delete;
 
   void push_request(ReqType &&req) {
+    if (!thread_.joinable()) {
+      return;
+    }
+
     if constexpr (!std::is_void_v<REQ>) {
       {
         std::lock_guard lk(mutex_);
@@ -212,6 +204,10 @@ public:
 
   template <class PRED>
   bool push_request_conditional(ReqType &&req, PRED &&check_dup) {
+    if (!thread_.joinable()) {
+      return false;
+    }
+
     if constexpr (!std::is_void_v<REQ>) {
       {
         std::lock_guard lk(mutex_);
@@ -240,8 +236,19 @@ public:
     return true;
   }
 
+  void notify_stop() {
+    {
+      std::lock_guard lk(mutex_);
+      stop_requested_ = true;
+    }
+    condition_.notify_all();
+  }
+
   void stop() {
-    stop_impl();
+    if (thread_.joinable()) {
+      notify_stop();
+      thread_.join();
+    }
   }
 
   void set_consume_all_requests(bool consume_all) {

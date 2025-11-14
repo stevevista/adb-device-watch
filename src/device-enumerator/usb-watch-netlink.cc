@@ -945,14 +945,6 @@ void UsbEnumeratorNetlink::enumerateDevices() {
 
 void UsbEnumeratorNetlink::sysfs_usb_interface_enumerated(const UsbInterfaceAttr* attr) {
   //printf("device %s\n", attr->tty.c_str());
-
-  if (attr->tty.size()) {
-    if (!isUsb2SerialDevice(settings_.usb2serialVidPid, attr->vendor, attr->product)) {
-      // normal usb serial device cannot be a compisite device
-      return;
-    }
-  }
-
   DeviceInterface newnode;
   newnode.hub = attr->identity;
   newnode.vid = attr->vendor;
@@ -960,13 +952,14 @@ void UsbEnumeratorNetlink::sysfs_usb_interface_enumerated(const UsbInterfaceAttr
   newnode.serial = attr->serial;
   newnode.usbIf = attr->ifnum;
 
+  if (attr->numinterfaces == 1) {
+    newnode.usbIf = -1;
+  }
+
   uint16_t session_id = ((uint16_t)attr->busnum << 8) | attr->devaddr;
   auto interface_id = std::to_string(session_id);
 
-  auto friendlyId = attr->identity;
-
   if (attr->tty.size()) {
-    friendlyId = attr->tty;
     newnode.devpath = "/dev/" + attr->tty;
     newnode.description = attr->tty;
     // usb2serial
@@ -980,7 +973,7 @@ void UsbEnumeratorNetlink::sysfs_usb_interface_enumerated(const UsbInterfaceAttr
   }
 
   if (attr->productDesc.size()) {
-    newnode.description = attr->productDesc + " (" + friendlyId + ")";
+    newnode.description = attr->productDesc;
   }
 
   this->onUsbInterfaceEnumerated(interface_id, std::move(newnode));

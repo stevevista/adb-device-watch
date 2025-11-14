@@ -125,32 +125,6 @@ public:
 
     return watcher;
   }
-
-  template <class FN>
-  requires std::invocable<FN, const CompositeDevice &, const DeviceInterface &>
-  [[nodiscard]] static std::unique_ptr<WatchThread, WatchStopper> create(FN &&callback, WatchSettings settings = {}) {
-    class Impl : public WatchThread {
-      FN callback_;
-    public:
-      Impl(FN&& callback) : callback_(std::forward<FN>(callback)) {}
-
-      void onCompositeDeviceChanged(const CompositeDevice &dev, const DeviceInterface &node) override {
-        callback_(dev, node);
-      }
-    };
-
-    auto watcher = std::unique_ptr<Impl, WatchStopper>(
-        new Impl(std::forward<FN>(callback)));
-
-    settings.enableCompositeDevice = true;
-    watcher->initSettings(settings);
-
-    if (!watcher->startWatchWaitResult()) {
-      return nullptr;
-    }
-
-    return watcher;
-  }
 };
 
 class WatchWaiter {
@@ -163,7 +137,6 @@ class WatchWaiter {
   constexpr bool test_match(const DeviceInterface &target, const DeviceInterface &iface) const {
     return (target.off == iface.off) &&
             (target.type == DeviceType::None || (target.type & iface.type)) &&
-            (target.identity.empty() || target.identity == iface.identity) &&
             (target.devpath.empty() || target.devpath == iface.devpath) &&
             (target.hub.empty() || target.hub == iface.hub) &&
             (target.serial.empty() || target.serial == iface.serial) &&
@@ -174,7 +147,14 @@ class WatchWaiter {
             (target.pid == 0 || target.pid == iface.pid) &&
             (target.usbClass == 0 || target.usbClass == iface.usbClass) &&
             (target.usbSubClass == 0 || target.usbSubClass == iface.usbSubClass) &&
-            (target.usbProto == 0 || target.usbProto == iface.usbProto);
+            (target.usbProto == 0 || target.usbProto == iface.usbProto) &&
+            (target.usbIf < 0 || target.usbIf == iface.usbIf) &&
+            (target.identity.empty() || (target.identity == iface.identity || 
+                                          target.identity == iface.devpath  || 
+                                          target.identity == iface.hub ||
+                                          target.identity == iface.serial ||
+                                          target.identity == iface.ip ||
+                                          target.identity == iface.driver));
   }
 
   bool match_target(DeviceInterface &target) const {
@@ -230,6 +210,19 @@ public:
       return false;
     }
     return true;
+  }
+
+  DeviceInterface wait(DeviceInterface target) noexcept {
+    wait_for(target);
+    return target;
+  }
+
+  bool wait(DeviceInterface target, int64_t milliseconds_timeout, DeviceInterface *out = nullptr) noexcept {
+    auto ret = wait_for(target, milliseconds_timeout);
+    if (ret && out) {
+      *out = std::move(target);
+    }
+    return ret;
   }
 
   std::vector<DeviceInterface> get_all(const DeviceInterface *filter) {

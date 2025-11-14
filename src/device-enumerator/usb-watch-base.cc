@@ -160,70 +160,25 @@ void UsbEnumerator::onUsbInterfaceEnumerated(const std::string &interface_id, De
 
   newdev.identity = createUuid(interface_id);
 
-  {
-    std::lock_guard lock(mutex_);
-    cached_interfaces_[newdev.identity] = newdev;
-  }
-
   if ((newdev.type & DeviceType::usbConnectedAdb) == static_cast<uint32_t>(DeviceType::usbConnectedAdb)) {
     if (settings_.enableAdbClient) {
+      // cache the adb device for later use
+      {
+        std::lock_guard lock(mutex_);
+        cached_interfaces_[newdev.identity] = newdev;
+      }
+
       adb_task_.push_request(Trigger { .node = std::move(newdev) });
       return;
     }
   }
 
-  onDeviceInterfaceChangedWrap(newdev);
+  onDeviceInterfaceChangedToOn(newdev);
 }
 
 void UsbEnumerator::onUsbInterfaceOff(const std::string &interface_id) {
   auto uuid = createUuid(interface_id);
-  onDeviceInterfaceChangedToOff(uuid);
-}
-
-void UsbEnumerator::onDeviceInterfaceChangedWrap(const DeviceInterface &node) {
-  onDeviceInterfaceChanged(node);
-
-  if (settings_.enableCompositeDevice) {
-    std::string id;
-    if (node.type & DeviceType::Usb) {
-      id = node.hub;
-    } else if (node.type & DeviceType::Serial) {
-      id = node.devpath;
-    } else if (node.type & DeviceType::Net) {
-      id = node.ip;
-    } else {
-      return;
-    }
-
-    CompositeDevice dev;
-
-    {
-      std::lock_guard lock(mutex_);
-      if (node.off) {
-        auto it = cached_composite_devices_.find(id);
-        if (it == cached_composite_devices_.end()) {
-          return;
-        }
-        dev = std::move(it->second);
-        cached_composite_devices_.erase(it);
-      } else {
-        auto it = cached_composite_devices_.find(id);
-        if (it == cached_composite_devices_.end()) {
-          dev = CompositeDevice{ .identity = id, .interfaces = {node}, .type = node.type };
-          cached_composite_devices_.emplace(id, dev);
-        } else {
-          it->second.interfaces.push_back(node);
-          it->second.type |= node.type;
-          dev = it->second;
-        }
-      }
-    }
-    
-    onCompositeDeviceChanged(dev, node); 
-  } // enableCompositeDevice
-}
-
-void UsbEnumerator::onDeviceInterfaceChangedToOff(const std::string &uuid) {
+  
   DeviceInterface node;
   {
     std::lock_guard lock(mutex_);
@@ -248,12 +203,22 @@ void UsbEnumerator::onDeviceInterfaceChangedToOff(const std::string &uuid) {
     }
   }
 
-  onDeviceInterfaceChangedWrap(node);
+  onDeviceInterfaceChanged(node);
+}
+
+void UsbEnumerator::onDeviceInterfaceChangedToOn(const DeviceInterface &node) {
+  {
+    std::lock_guard lock(mutex_);
+    cached_interfaces_[node.identity] = node;
+  }
+
+  onDeviceInterfaceChanged(node);
 }
 
 namespace {
 
 constexpr void merge_adb_info(DeviceInterface &dst, DeviceInfo &&src) {
+  dst.serial = std::move(src.serial);
   dst.product = std::move(src.product);
   dst.model = std::move(src.model);
   dst.device = std::move(src.device);
@@ -267,62 +232,74 @@ void UsbEnumerator::createAdbTask() {
   adb_task_.start(ADB_POLL_INTERVAL, [this](std::optional<Trigger> &&req) {
     if (req.has_value()) {
       if (req->node.off) {
-        adb_serials_.remove_if([&](auto &d) { return d.second == req->node.identity; });
+        adb_serials_.remove(req->node.serial);
         req.reset();
       }
     }
 
-    auto devs = adb_list_devices({}, true);
+    std::vector<DeviceInfo> devs;
+    try {
+      devs = adb_list_devices({}, true);
+    } catch (std::exception &e) {
+      std::cerr << "adb_list_devices failed: " << e.what() << std::endl;
+      adb_task_.notify_stop();
+      return;
+    }
 
     // check removed devices
-    std::erase_if(adb_serials_, [this, &devs](const auto& pair) {
-      bool not_found = std::ranges::none_of(devs, [&](const auto& d) { 
-        return d.serial == pair.first; 
+    std::erase_if(adb_serials_, [this, &devs](const auto& serial) {
+      bool not_found = std::ranges::none_of(devs, [&serial](const auto& d) { 
+        return d.serial == serial; 
       });
       
-      if (not_found && isRemoteDevice(pair.first)) {
-        onDeviceInterfaceChangedToOff(pair.second);
+      if (not_found && isRemoteDevice(serial)) {
+        onUsbInterfaceOff(serial);
       }
       
       return not_found;
     });
 
     // check added devices
+    std::vector<DeviceInfo> newly_added;
+
     for (auto &dev : devs) {
-      if (std::ranges::none_of(adb_serials_, [&](auto &d) { return d.first == dev.serial; })) {
+      if (std::ranges::none_of(adb_serials_, [&](auto &serial) { return serial == dev.serial; })) {
         DeviceInterface rmote;
         if (isRemoteDevice(dev.serial, &rmote.ip, &rmote.port)) {
           rmote.identity = createUuid(dev.serial);
-          rmote.serial = dev.serial;
           rmote.type = DeviceType::remoteAdb;
           merge_adb_info(rmote, std::move(dev));
-          adb_serials_.push_back(std::make_pair(dev.serial, rmote.identity));
+          adb_serials_.push_back(rmote.serial);
 
           if (shouldIncludeDevice(rmote, settings_)) {
-            {
-              std::lock_guard lock(mutex_);
-              cached_interfaces_[rmote.identity] = rmote;
-            }
-
-            onDeviceInterfaceChangedWrap(rmote);
+            onDeviceInterfaceChangedToOn(rmote);
           }
         } else {
           if (req.has_value()) {
             if (req->node.serial == dev.serial || req->node.serial.empty()) {
-              req->node.serial = dev.serial;
-              merge_adb_info(req->node, std::move(dev));
-              adb_serials_.push_back(std::make_pair(dev.serial, req->node.identity));
-              {
-                std::lock_guard lock(mutex_);
-                cached_interfaces_[req->node.identity] = req->node;
+              if (req->node.serial == dev.serial) {
+                // matched by serial exactlly
+                // make this dev sort at head
+                dev.transportId = -1;
               }
 
-              onDeviceInterfaceChangedWrap(req->node);
-              req.reset();
+              newly_added.push_back(std::move(dev));
             }
           }
         }
       }
+    }
+
+    if (newly_added.size()) {
+      std::ranges::sort(newly_added, [](const auto& a, const auto& b) {
+        return a.transportId < b.transportId;
+      });
+
+      merge_adb_info(req->node, std::move(newly_added[0]));
+      adb_serials_.push_back(req->node.serial);
+
+      onDeviceInterfaceChangedToOn(req->node);
+      req.reset();
     }
 
     if (req.has_value() && req->round < MAX_ADB_RETRY_COUNT) {

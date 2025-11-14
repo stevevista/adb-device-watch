@@ -160,17 +160,10 @@ struct DeviceInterface {
   bool off{false};
 };
 
-struct CompositeDevice {
-  std::string identity; // usbid, comport, or IP
-  std::vector<DeviceInterface> interfaces;
-  DeviceType type{DeviceType::None};
-};
-
 class UsbEnumerator {
 public:
   struct WatchSettings {
     bool enableAdbClient{true};
-    bool enableCompositeDevice{false};
     std::vector<DeviceType> typeFilters;
     std::vector<uint16_t> includeVids;
     std::vector<uint16_t> excludeVids;
@@ -198,19 +191,17 @@ protected:
  private: 
   virtual void enumerateDevices() = 0;
   virtual void onDeviceInterfaceChanged(const DeviceInterface &) {}
-  virtual void onCompositeDeviceChanged(const CompositeDevice &, const DeviceInterface &) {}
 
   void createAdbTask();
-  void onDeviceInterfaceChangedWrap(const DeviceInterface &);
-  void onDeviceInterfaceChangedToOff(const std::string &uuid);
+  void onDeviceInterfaceChangedToOn(const DeviceInterface &);
 
 protected:
   WatchSettings settings_;
   std::function<void(bool)> initCallback_;
 
 private:
-  // <serial, uuid>
-  std::list<std::pair<std::string, std::string>> adb_serials_;
+  // serial
+  std::list<std::string> adb_serials_;
 
   struct Trigger { DeviceInterface node; int round{0}; };
   task_thread<Trigger> adb_task_;
@@ -218,7 +209,6 @@ private:
   std::mutex mutex_;
   // <identity, device>
   std::unordered_map<std::string, DeviceInterface> cached_interfaces_;
-  std::unordered_map<std::string, CompositeDevice> cached_composite_devices_;
 };
 
 } // namespace device_enumerator
