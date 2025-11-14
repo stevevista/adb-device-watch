@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include "device-enumerator/device-watcher.h"
+#include "device-enumerator/shorthash.h"
 #include <mutex>
 #include <vector>
 

@@ -21,7 +21,7 @@
 #include "usb-watch-base.h"
 #include "adb-client/adb-client.h"
 #include <algorithm>
-#include "picosha2.h"
+#include "shorthash.h"
 #include <regex>
 
 namespace device_enumerator {
@@ -45,9 +45,7 @@ constexpr auto ADB_POLL_INTERVAL = std::chrono::milliseconds(3000);
 const std::regex re_remote(R"((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{1,5}))");
 
 std::string createUuid(std::string_view interface_id) {
-  std::vector<unsigned char> hash(picosha2::k_digest_size);
-  picosha2::hash256(interface_id.begin(), interface_id.end(), hash.begin(), hash.end());
-  return picosha2::bytes_to_hex_string(hash.begin(), hash.begin() + 16);
+  return shorthash::hash_to_string(interface_id.begin(), interface_id.end());
 }
 
 bool isRemoteDevice(const std::string &serial, std::string *ip = nullptr, uint16_t *port = nullptr) noexcept {

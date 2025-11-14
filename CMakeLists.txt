@@ -30,10 +30,6 @@ endif()
 
 endif()
 
-if(NOT TARGET picosha2)
-add_subdirectory(external/picosha2 EXCLUDE_FROM_ALL)
-endif()
-
 set_taret_name(DEVICE_WATCH_NS device_watch)
 #set (DEVICE_WATCH_MSVC_RUNTIME MD)
 #set (DEVICE_WATCH_TARGET_PREFIX md)

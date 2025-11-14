@@ -19,7 +19,6 @@ select_msvc_runtime_library(${TARGET})
 target_include_directories(${TARGET} PRIVATE ..)
 
 target_link_libraries(${TARGET} PRIVATE
-  picosha2
   ${DEVICE_WATCH_NS}::process
   ${DEVICE_WATCH_NS}::adbclient)
 
